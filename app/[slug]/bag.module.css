@@ -1,0 +1,38 @@
+/* Your drop sliding into the top of the bag, right after the success screen. */
+@keyframes rowIn { 0% { transform: translateY(-100%); opacity: 0 } 100% { transform: none; opacity: 1 } }
+.rowIn > section > div:first-of-type { animation: rowIn 420ms var(--ease-snap) 120ms both }
+@media (prefers-reduced-motion: reduce) {
+  .rowIn > section > div:first-of-type { animation: none }
+}
+
+/* Phone first: one 430px column. From 900px the hero takes the left side,
+   sticky and full height, and the rest sits on the right. Sizes that change
+   with the layout are variables, used by the inline styles in BagApp. */
+.shell { position: relative; max-width: 430px; min-height: 100vh; margin: 0 auto; background: var(--paper); display: flex; flex-direction: column }
+.hero {
+  position: relative; container-type: inline-size; height: var(--hero-h, auto); overflow: hidden;
+  border-bottom: var(--border-w-heavy) solid var(--ink);
+  --pad: 16px; --pad-tight: 14px; --wordmark: 16px;
+}
+.landingHero { --num: 52px; --sbag: 34px }
+.bagHero { --bag: 92px; --edge: 84px; --edge-text: 92px; --num: 44px }
+.pane { padding: 20px 16px 32px; display: flex; flex-direction: column; gap: 20px }
+.desk { display: none }
+/* The bag fills the screen, so a short list still docks the player at the bottom. */
+.bagView { min-height: 100vh; display: flex; flex-direction: column }
+.col { flex: 1; display: flex; flex-direction: column }
+
+@media (min-width: 900px) {
+  .shell { max-width: none }
+  .split { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); min-height: 100vh; align-items: start }
+  .hero {
+    position: sticky; top: 0; height: 100vh; border-bottom: 0; border-right: var(--border-w-heavy) solid var(--ink);
+    --pad: 32px; --pad-tight: 32px; --wordmark: 24px;
+  }
+  .landingHero { --wordmark: min(24px, 4cqw); --num: min(104px, 14cqw); --sbag: min(64px, 9cqw) }
+  .bagHero { --bag: min(46vh, 20cqw); --edge: calc(min(46vh, 20cqw) * 0.8 + 12px); --edge-text: var(--edge); --num: min(88px, 11cqw) }
+  .pane { padding: 48px clamp(24px, 4vw, 64px); max-width: 640px; width: 100%; align-self: center }
+  .col { min-height: 100vh }
+  .desk { display: block }
+  .mob { display: none !important } /* beats the inline display of what it hides */
+}

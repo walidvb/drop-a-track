@@ -1,0 +1,39 @@
+import type { Provider } from "./providers";
+
+/** One track on a Bandcamp release, as the release page describes it. */
+export interface BandcampTrack {
+  trackId: string;
+  title: string;
+  /** Signed `mp3-128` URL; null when Bandcamp offers no public stream (purchase-only). */
+  streamUrl: string | null;
+  durationSec: number | null;
+}
+
+/** What reading a link yields. Every text field is a suggestion the user may correct. */
+export interface MediaInfo {
+  provider: Provider;
+  /** Canonical URL (see `normalizeUrl`). */
+  url: string;
+  title: string;
+  artist: string;
+  artworkUrl: string | null;
+  durationSec: number | null;
+  /** Only for Bandcamp: the release's tracklist, so an album link can be narrowed to one track. */
+  bandcamp?: {
+    album: string;
+    tracks: BandcampTrack[];
+    /** The track Bandcamp's own page loads first; null when nothing is streamable. */
+    defaultTrackId: string | null;
+  };
+}
+
+/** Everything the player needs to play one item. */
+export interface MediaRef {
+  provider: Provider;
+  /** The page URL (YouTube/SoundCloud play this directly). */
+  url: string;
+  /** Bandcamp only: the release's track id, used to mint a fresh stream when this one dies. */
+  providerTrackId?: string | null;
+  /** Bandcamp only: the stream actually played. */
+  streamUrl?: string | null;
+}

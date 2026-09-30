@@ -1,0 +1,9 @@
+/* The poster's moiré, drifting slowly behind everything. */
+@keyframes drift {
+  0% { transform: scale(1.05) rotate(0); }
+  100% { transform: scale(1.18) rotate(4deg); }
+}
+.drift { animation: drift 40s linear infinite alternate; }
+@media (prefers-reduced-motion: reduce) {
+  .drift { animation: none; }
+}

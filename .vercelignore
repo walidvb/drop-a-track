@@ -1,0 +1,6 @@
+# Local secrets: production values live in the Vercel project's env.
+.env
+.env.*
+!.env.example
+# Texture sources (the built masks are in public/textures).
+assets/

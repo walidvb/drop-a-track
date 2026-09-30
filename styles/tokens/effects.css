@@ -1,0 +1,29 @@
+:root{
+--radius-0:0px;
+--radius-pill:999px;
+--border-w:2px; /* @kind other */
+--border-w-heavy:4px; /* @kind other */
+--rule:2px solid var(--ink); /* @kind other */
+--rule-inverse:2px solid var(--paper); /* @kind other */
+--rule-hair:1px solid var(--ink); /* @kind other */
+--shadow-none:none;
+--shadow-hard:6px 6px 0 var(--ink);
+--shadow-hard-accent:6px 6px 0 var(--magenta);
+--ease-snap:cubic-bezier(.7,0,.2,1); /* @kind other */
+--ease-out:cubic-bezier(.2,.8,.2,1); /* @kind other */
+--dur-instant:60ms; /* @kind other */
+--dur-fast:120ms; /* @kind other */
+--dur-base:200ms; /* @kind other */
+--dur-slow:480ms; /* @kind other */
+}
+/*
+ * Moiré textures are masks, not pictures: --tex-color shows through the
+ * scan's lines, so a texture can be ink, paper or magenta. Drawn on ::before,
+ * behind the element's own content. Built from assets/textures by
+ * scripts/build-textures.sh (public/textures/ripples-*.webp).
+ * In the app, <Texture> (components/ds/Texture.tsx) picks one at random on
+ * every mount. By hand: class="tex" style="--tex-mask:url(/textures/ripples-7.webp)".
+ * Without a --tex-mask nothing shows (the fallback mask is fully transparent).
+ */
+.tex{position:relative;isolation:isolate}
+.tex::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:var(--tex-color,var(--ink));opacity:var(--tex-opacity,1);-webkit-mask:var(--tex-mask,linear-gradient(transparent,transparent)) center/cover no-repeat;mask:var(--tex-mask,linear-gradient(transparent,transparent)) center/cover no-repeat}

@@ -1,0 +1,32 @@
+/* Font families come from next/font (app/fonts.ts), which defines the --ff-* variables on <html>. */
+:root{
+--font-display:var(--ff-shapiro-extd),var(--ff-archivo),sans-serif;
+--font-display-wide:var(--ff-shapiro-wide),var(--ff-archivo),sans-serif;
+--font-display-tall:var(--ff-shapiro),var(--ff-archivo),sans-serif;
+--font-heavy:var(--ff-shapiro-heavy),var(--ff-archivo),sans-serif;
+--font-air:var(--ff-shapiro-air),var(--ff-archivo),sans-serif;
+--font-body:var(--ff-archivo),'Helvetica Neue',sans-serif;
+--font-mono:var(--ff-plex-mono),ui-monospace,monospace;
+
+--fs-mega:clamp(72px,14vw,220px); /* @kind font */
+--fs-display:clamp(48px,8vw,120px); /* @kind font */
+--fs-h1:56px;
+--fs-h2:36px;
+--fs-h3:24px;
+--fs-h4:18px;
+--fs-body:16px; /* @kind font */
+--fs-small:14px; /* @kind font */
+--fs-micro:11px; /* @kind font */
+
+--lh-crush:0.82; /* @kind font */
+--lh-tight:1.0; /* @kind font */
+--lh-snug:1.15; /* @kind font */
+--lh-body:1.35; /* @kind font */
+
+--tracking-display:-0.02em; /* @kind font */
+--tracking-caps:0.08em; /* @kind font */
+--tracking-mono:0.02em; /* @kind font */
+
+--fw-body:500; /* @kind font */
+--fw-body-bold:800; /* @kind font */
+}

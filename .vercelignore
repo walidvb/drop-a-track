@@ -4,3 +4,5 @@
 !.env.example
 # Texture sources (the built masks are in public/textures).
 assets/
+# Local tooling and agent worktrees.
+.claude/

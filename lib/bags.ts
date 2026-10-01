@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import type { MediaRef } from "@cucu/media/core";
 import { resolveBandcampStream } from "@cucu/media/server";
 import { db } from "@/db";
@@ -40,29 +40,50 @@ export async function getScanTarget(token: string) {
   return row ?? null;
 }
 
-/** A bag's drops as the public sees them: no uids, no coordinates. Newest first. */
+/** A drop as the public sees it: no uids, no coordinates. */
+const publicDrop = {
+  id: drops.id,
+  url: drops.url,
+  provider: drops.provider,
+  providerTrackId: drops.providerTrackId,
+  streamUrl: drops.streamUrl,
+  title: drops.title,
+  artist: drops.artist,
+  artworkUrl: drops.artworkUrl,
+  durationSec: drops.durationSec,
+  droppedBy: drops.droppedBy,
+  droppedFrom: drops.droppedFrom,
+  createdAt: drops.createdAt,
+};
+
+/** A bag's public drops, newest first. */
 export async function getPublicDrops(bagId: number) {
   return db
-    .select({
-      id: drops.id,
-      url: drops.url,
-      provider: drops.provider,
-      providerTrackId: drops.providerTrackId,
-      streamUrl: drops.streamUrl,
-      title: drops.title,
-      artist: drops.artist,
-      artworkUrl: drops.artworkUrl,
-      durationSec: drops.durationSec,
-      droppedBy: drops.droppedBy,
-      droppedFrom: drops.droppedFrom,
-      createdAt: drops.createdAt,
-    })
+    .select(publicDrop)
     .from(drops)
     .where(eq(drops.bagId, bagId))
     .orderBy(desc(drops.createdAt), desc(drops.id));
 }
 
 export type PublicDrop = Awaited<ReturnType<typeof getPublicDrops>>[number];
+
+/** Every open bag (shirts with a handle), by shirt number, with its public drops newest first. */
+export async function getAllBags() {
+  const owners = await db
+    .select({ number: qrCodes.number, handle: qrCodes.handle, bagId: bags.id, bagCreatedAt: bags.createdAt })
+    .from(qrCodes)
+    .innerJoin(bags, eq(bags.id, qrCodes.currentBagId))
+    .where(isNotNull(qrCodes.handle))
+    .orderBy(asc(qrCodes.number));
+  const rows = owners.length
+    ? await db
+        .select({ ...publicDrop, bagId: drops.bagId })
+        .from(drops)
+        .where(inArray(drops.bagId, owners.map((o) => o.bagId)))
+        .orderBy(desc(drops.createdAt), desc(drops.id))
+    : [];
+  return owners.map((o) => ({ ...o, handle: o.handle!, drops: rows.filter((d) => d.bagId === o.bagId) }));
+}
 
 export const mediaRefOf = (d: Pick<PublicDrop, "provider" | "url" | "providerTrackId" | "streamUrl">): MediaRef => ({
   provider: d.provider,

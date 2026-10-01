@@ -1,9 +1,61 @@
 /* The poster's moiré, drifting slowly behind everything. */
 @keyframes drift {
   0% { transform: scale(1.05) rotate(0); }
-  100% { transform: scale(1.18) rotate(4deg); }
+  100% { transform: scale(1.2) rotate(6deg); }
 }
-.drift { animation: drift 40s linear infinite alternate; }
+.drift { animation: drift 24s ease-in-out infinite alternate; }
 @media (prefers-reduced-motion: reduce) {
   .drift { animation: none; }
+}
+
+/* Hovers invert, as everywhere in the system; links go magenta. */
+.bar {
+  width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  min-height: 36px; padding: 0 12px; border: 0; border-bottom: 1px solid var(--ink);
+  background: var(--paper); color: var(--ink); cursor: pointer; text-align: left;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: var(--tracking-caps); text-transform: uppercase;
+}
+.bar:hover { background: var(--ink); color: var(--paper) }
+.row {
+  display: grid; grid-template-columns: 56px 48px minmax(0, 1fr) auto; align-items: center; gap: 12px;
+  min-height: var(--row-h); padding: 8px 0 8px 12px; border-bottom: var(--rule);
+  background: var(--paper); color: var(--ink); cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-snap);
+}
+.row:hover, .row[aria-pressed="true"] { background: var(--ink); color: var(--paper) }
+.src {
+  align-self: stretch; display: flex; align-items: center; gap: 6px; min-width: 44px; min-height: 44px; padding: 0 12px;
+  color: inherit; text-decoration: none; white-space: nowrap;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: var(--tracking-caps); text-transform: uppercase;
+}
+.src:hover { color: var(--magenta) }
+.back:hover { color: var(--magenta) !important }
+.close:hover { background: var(--ink) !important; color: var(--paper) !important }
+
+/* The drops panel sits beside the poster until the two no longer fit (620 + 380px),
+   then wraps below it: only then is a button needed to get down to it. */
+.stackedOnly { display: none }
+@media (max-width: 999px) { .stackedOnly { display: contents } }
+
+/* The three steps side by side, or stacked once their box is too narrow for three columns (phones). */
+.stepsBox { container-type: inline-size }
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--ink) }
+.steps > * + * { border-left: 1px solid var(--ink) }
+@container (max-width: 380px) {
+  .steps { grid-template-columns: 1fr }
+  .steps > * + * { border-left: 0; border-top: 1px solid var(--ink) }
+}
+
+/* Coming in: DROP A then TRACK slide 10px into place (--d apart, each from its own --from: DROP A
+   up, the rotated TRACK right to left), then everything else fades in together, and the list's
+   header then tracks slide down one after the other (--delay). All of it waits hidden for .shown
+   on the page; without motion, nothing is ever hidden. `translate` leaves TRACK's rotation alone. */
+@keyframes enter { from { opacity: 0; translate: var(--from) } to { opacity: 1; translate: 0 0 } }
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes slideDown { from { opacity: 0; translate: 0 -10px } to { opacity: 1; translate: 0 0 } }
+@media (prefers-reduced-motion: no-preference) {
+  .enter, .reveal, .slide { opacity: 0 }
+  .shown .enter { opacity: 1; animation: enter 560ms cubic-bezier(.2, .8, .2, 1) var(--d) backwards }
+  .shown .reveal { opacity: 1; animation: fadeIn 280ms linear 560ms backwards }
+  .shown .slide { opacity: 1; animation: slideDown 300ms cubic-bezier(.2, .8, .2, 1) var(--delay) backwards }
 }

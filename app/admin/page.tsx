@@ -34,6 +34,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
             <th style={s.th}>#</th>
             <th style={s.th}>QR</th>
             <th style={s.th}>Handle</th>
+            <th style={s.th}>Theme</th>
             <th style={s.th}>Drops</th>
           </tr>
         </thead>
@@ -57,6 +58,9 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
                     <button style={s.button}>Open bag</button>
                   </form>
                 )}
+              </td>
+              <td style={{ ...s.td, fontFamily: "var(--font-body)" }}>
+                <Link href={`/admin/${c.number}`}>{c.theme ?? "Set a theme"}</Link>
               </td>
               <td style={s.td}>
                 <Link href={`/admin/${c.number}`}>{c.drops}</Link>

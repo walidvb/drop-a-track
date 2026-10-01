@@ -23,6 +23,8 @@ interface Owner {
   handle: string;
   number: number;
   since: string;
+  /** The wearer's prompt for this bag, if they set one. */
+  theme: string | null;
 }
 
 const NAME_KEY = "dat-name";
@@ -199,7 +201,33 @@ function Landing({
         </div>
       </section>
       <section className={bagStyles.pane}>
-        <UrlForm value={val} onChange={change} status={status} message={message} onSubmit={submit} />
+        {owner.theme && (
+          <div style={{ display: "flex", flexDirection: "column", background: "var(--ink)", color: "var(--paper)" }}>
+            <div
+              style={{
+                ...chip,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 12,
+                padding: "8px 12px",
+                borderBottom: "1px solid var(--gray-400)",
+              }}
+            >
+              <span>Theme</span>
+              <span style={{ color: "var(--gray-400)" }}>Set by {owner.handle}</span>
+            </div>
+            <p style={{ margin: 0, padding: "14px 12px 16px", fontWeight: 800, fontSize: 22, lineHeight: 1.15, textWrap: "pretty" }}>{owner.theme}</p>
+          </div>
+        )}
+        <UrlForm
+          value={val}
+          onChange={change}
+          status={status}
+          message={message}
+          onSubmit={submit}
+          hint={owner.theme ? "Stick to the theme, or don’t. Bandcamp, SoundCloud or YouTube." : undefined}
+        />
         <p style={{ margin: 0, fontWeight: 800, fontSize: 16, lineHeight: 1.2 }}>
           {count} {count === 1 ? "track" : "tracks"} in the bag. You get one drop {"—"} make it count.
         </p>

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { listDrops, listQrCodes } from "@/lib/admin";
+import { listDrops, listQrCodes, THEME_MAX } from "@/lib/admin";
 import { padNumber } from "@/lib/format";
-import { deleteDropAction } from "../actions";
+import { deleteDropAction, setThemeAction } from "../actions";
 import { adminStyles as s } from "../styles";
 
 /** One shirt's current bag, with everything we store — coordinates included. */
@@ -19,6 +19,26 @@ export default async function AdminBagPage({ params }: PageProps<"/admin/[number
       <h1 style={s.h1}>
         #{padNumber(number)} {code.handle ? code.handle : ""}
       </h1>
+      {code.bagId && (
+        <form action={setThemeAction} style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: 640 }}>
+          <label htmlFor="theme" style={{ fontFamily: "var(--font-mono)", fontSize: 11, textTransform: "uppercase" }}>
+            Theme · shown above the drop form, blank for none
+          </label>
+          <div style={s.row}>
+            <input type="hidden" name="bagId" value={code.bagId} />
+            <input type="hidden" name="number" value={number} />
+            <input
+              id="theme"
+              name="theme"
+              defaultValue={code.theme ?? ""}
+              maxLength={THEME_MAX}
+              placeholder="Something for the walk home after the club."
+              style={{ ...s.input, flex: 1, fontFamily: "var(--font-body)" }}
+            />
+            <button style={s.button}>Save</button>
+          </div>
+        </form>
+      )}
       <table style={s.table}>
         <thead>
           <tr>

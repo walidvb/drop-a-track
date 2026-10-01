@@ -43,6 +43,8 @@ export const bags = pgTable(
       .references(() => qrCodes.id, { onDelete: "cascade" }),
     /** 1.. per QR code; older bags would live at /@handle/<seq>. */
     seq: integer("seq").notNull(),
+    /** The wearer's prompt for droppers ("Something for the walk home…"). Set in the admin for now. */
+    theme: text("theme"),
     createdAt: createdAt(),
   },
   (t) => [unique().on(t.qrCodeId, t.seq)],

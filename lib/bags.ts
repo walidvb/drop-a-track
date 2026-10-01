@@ -11,6 +11,7 @@ export interface BagOwner {
   handle: string;
   bagId: number;
   bagCreatedAt: Date;
+  theme: string | null;
 }
 
 /** The current bag of the shirt with this handle. */
@@ -22,6 +23,7 @@ export async function getBagByHandle(handle: string): Promise<BagOwner | null> {
       handle: qrCodes.handle,
       bagId: bags.id,
       bagCreatedAt: bags.createdAt,
+      theme: bags.theme,
     })
     .from(qrCodes)
     .innerJoin(bags, eq(bags.id, qrCodes.currentBagId))

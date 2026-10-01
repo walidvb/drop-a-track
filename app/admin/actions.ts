@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { assignHandle, createQrCode, deleteDrop } from "@/lib/admin";
+import { assignHandle, createQrCode, deleteDrop, setBagTheme } from "@/lib/admin";
 import { isAdminAuthorization } from "@/lib/admin-auth";
 import { parseHandle } from "@/lib/handle";
 
@@ -34,5 +34,11 @@ export async function assignHandleAction(formData: FormData) {
 export async function deleteDropAction(formData: FormData) {
   await assertAdmin();
   await deleteDrop(Number(formData.get("dropId")));
+  back(`/admin/${Number(formData.get("number"))}`);
+}
+
+export async function setThemeAction(formData: FormData) {
+  await assertAdmin();
+  await setBagTheme(Number(formData.get("bagId")), String(formData.get("theme") ?? ""));
   back(`/admin/${Number(formData.get("number"))}`);
 }

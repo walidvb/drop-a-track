@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { bags, drops, qrCodes } from "@/db/schema";
 import { generateToken } from "./token";
 
-/** Every shirt, with its current bag's drop count. */
+/** Every shirt, with its current bag's theme and drop count. */
 export async function listQrCodes() {
   return db
     .select({
@@ -12,12 +12,24 @@ export async function listQrCodes() {
       token: qrCodes.token,
       handle: qrCodes.handle,
       bagId: qrCodes.currentBagId,
+      theme: bags.theme,
       drops: count(drops.id),
     })
     .from(qrCodes)
+    .leftJoin(bags, eq(bags.id, qrCodes.currentBagId))
     .leftJoin(drops, eq(drops.bagId, qrCodes.currentBagId))
-    .groupBy(qrCodes.id)
+    .groupBy(qrCodes.id, bags.id)
     .orderBy(asc(qrCodes.number));
+}
+
+/** A theme is one short line: longer input is cut, blank clears it. */
+export const THEME_MAX = 140;
+
+export async function setBagTheme(bagId: number, theme: string) {
+  await db
+    .update(bags)
+    .set({ theme: theme.trim().slice(0, THEME_MAX) || null })
+    .where(eq(bags.id, bagId));
 }
 
 /** Everything about a bag's drops, coordinates included — admin only. */

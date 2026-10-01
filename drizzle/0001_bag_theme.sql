@@ -1,0 +1,1 @@
+ALTER TABLE "bags" ADD COLUMN "theme" text;

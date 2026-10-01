@@ -8,6 +8,13 @@
       "when": 1790701550420,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790813538968,
+      "tag": "0001_bag_theme",
+      "breakpoints": true
     }
   ]
 }

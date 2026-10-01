@@ -47,7 +47,7 @@ export default async function BagPage({ params }: PageProps<"/[slug]">) {
 
   return (
     <BagApp
-      owner={{ handle: bag.handle, number: bag.number, since: monthYear(bag.bagCreatedAt) }}
+      owner={{ handle: bag.handle, number: bag.number, since: monthYear(bag.bagCreatedAt), theme: bag.theme }}
       bagId={bag.bagId}
       initialTracks={tracks}
       ticketValid={ticketValid}

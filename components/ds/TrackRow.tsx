@@ -1,144 +1,81 @@
 "use client";
 
-import { useState } from "react";
+import { sourceCode } from "@/lib/format";
 import { Artwork } from "./Artwork";
-import { fmtTime, type TrackView } from "./types";
+import { ellipsis, monoCaps } from "./styles";
+import styles from "./track-row.module.css";
+import type { TrackView } from "./types";
 
-const SOURCE_CODE: Record<string, string> = { bandcamp: "BC", soundcloud: "SC", youtube: "YT" };
-
+/** One track: plays on click; the source code on the right opens the original. */
 export function TrackRow({
   track,
-  index = 1,
-  active = false,
-  playing = false,
-  highlighted = false,
-  highlightLabel = "Your drop",
+  index,
+  active,
+  playing,
+  mine = false,
+  ruled = false,
   onPlay,
-  showMeta = true,
-  showArtwork = true,
 }: {
   track: TrackView;
-  index?: number;
-  active?: boolean;
-  playing?: boolean;
-  highlighted?: boolean;
-  highlightLabel?: string;
-  onPlay?: (track: TrackView) => void;
-  showMeta?: boolean;
-  showArtwork?: boolean;
+  index: number;
+  active: boolean;
+  playing: boolean;
+  /** This browser dropped it: magenta, labelled. */
+  mine?: boolean;
+  /** A rule between the text and the source link (inside a bag). */
+  ruled?: boolean;
+  onPlay: () => void;
 }) {
-  const [hov, setHov] = useState(false);
-  const [linkHov, setLinkHov] = useState(false);
-  const hl = highlighted;
-  const inv = (hov || active) && !hl;
-  const bg = hl ? "var(--magenta)" : inv ? "var(--ink)" : "transparent";
-  const fg = inv ? "var(--paper)" : "var(--ink)";
-  const sub = inv ? "var(--gray-400)" : hl ? "var(--ink)" : "var(--text-secondary)";
-  const solid = inv || hl;
   const who = track.droppedBy ? track.droppedBy + (track.droppedFrom ? ", " + track.droppedFrom : "") : null;
-  const meta = showMeta ? [track.duration ? fmtTime(track.duration) : null, who, track.droppedAt].filter(Boolean).join(" · ") : "";
-  const code = SOURCE_CODE[(track.source || "").toLowerCase().replace(/[^a-z]/g, "")] ?? track.source?.slice(0, 2).toUpperCase();
-  const ellipsis = { maxWidth: "100%", whiteSpace: "nowrap" as const, overflow: "hidden", textOverflow: "ellipsis" };
   return (
     <div
       role="button"
       tabIndex={0}
       aria-pressed={active}
-      onClick={() => onPlay?.(track)}
+      className={mine ? `${styles.row} ${styles.mine}` : styles.row}
+      onClick={onPlay}
       onKeyDown={(k) => {
         if (k.key === "Enter" || k.key === " ") {
           k.preventDefault();
-          onPlay?.(track);
+          onPlay();
         }
-      }}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        display: "grid",
-        gridTemplateColumns: "56px " + (showArtwork ? "48px " : "") + "minmax(0,1fr) auto",
-        alignItems: "center",
-        gap: "12px",
-        minHeight: "var(--row-h)",
-        padding: track.url ? "8px 4px 8px 12px" : "8px 12px",
-        borderBottom: "var(--rule)",
-        background: bg,
-        color: fg,
-        cursor: "pointer",
-        transition: "background var(--dur-fast) var(--ease-snap)",
       }}
     >
       <span
         style={{
           fontFamily: "var(--font-display)",
-          fontSize: "26px",
+          fontSize: 26,
           lineHeight: 0.85,
-          color: solid ? fg : "transparent",
-          WebkitTextStroke: solid ? "0" : "1.5px var(--ink)",
+          WebkitTextFillColor: active || mine ? "currentColor" : "transparent",
+          WebkitTextStroke: "1.5px currentColor",
         }}
       >
         {active && playing ? "▶︎" : String(index).padStart(2, "0")}
       </span>
-      {showArtwork ? <Artwork src={track.thumbnail} source={track.source} size={48} /> : null}
-      <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: "3px", alignItems: "flex-start" }}>
-        {hl ? (
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "10px",
-              letterSpacing: "var(--tracking-caps)",
-              textTransform: "uppercase",
-              background: "var(--ink)",
-              color: "var(--magenta)",
-              padding: "2px 6px",
-              marginBottom: "2px",
-            }}
-          >
-            {highlightLabel}
-          </span>
-        ) : null}
-        <span style={{ ...ellipsis, fontFamily: "var(--font-display-wide)", fontSize: "15px", lineHeight: 1.05, textTransform: "uppercase" }}>
+      <Artwork src={track.thumbnail} source={track.source} size={48} />
+      <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-start" }}>
+        {mine && (
+          <span style={{ ...monoCaps, fontSize: 10, background: "var(--ink)", color: "var(--magenta)", padding: "2px 6px", marginBottom: 2 }}>Your drop</span>
+        )}
+        <span style={{ ...ellipsis, fontFamily: "var(--font-display-wide)", fontSize: 15, lineHeight: 1.05, textTransform: "uppercase" }}>
           {track.title}
         </span>
-        <span style={{ ...ellipsis, fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "13px", color: sub }}>{track.artist}</span>
-        {meta ? <span style={{ ...ellipsis, fontFamily: "var(--font-mono)", fontSize: "11px", color: sub }}>{meta}</span> : null}
+        <span style={{ ...ellipsis, fontWeight: 700, fontSize: 13 }}>{track.artist}</span>
+        <span style={{ ...ellipsis, fontFamily: "var(--font-mono)", fontSize: 11 }}>{[who, track.droppedAt].filter(Boolean).join(" · ")}</span>
       </div>
-      {track.url ? (
-        <a
-          href={track.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`Open original on ${track.source ?? "its site"}`}
-          // The row plays on click and Enter: the link must only open the original.
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => e.stopPropagation()}
-          onMouseEnter={() => setLinkHov(true)}
-          onMouseLeave={() => setLinkHov(false)}
-          style={{
-            minWidth: 44,
-            minHeight: 44,
-            padding: "0 8px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 2,
-            textDecoration: "none",
-            color: linkHov ? (hl ? "var(--paper)" : "var(--magenta)") : "inherit",
-            fontFamily: "var(--font-mono)",
-            fontSize: "11px",
-            fontWeight: 500,
-            letterSpacing: "var(--tracking-caps)",
-            textTransform: "uppercase",
-          }}
-        >
-          <span aria-hidden style={{ fontSize: 16, lineHeight: 1 }}>
-            ↗
-          </span>
-          <span aria-hidden>{code}</span>
-        </a>
-      ) : (
-        <span />
-      )}
+      <a
+        href={track.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`Open on ${track.source}`}
+        className={styles.src}
+        // The row plays on click and Enter: the link must only open the original.
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        style={{ borderLeft: ruled ? "1px solid currentColor" : 0 }}
+      >
+        {sourceCode(track.source)} ↗
+      </a>
     </div>
   );
 }

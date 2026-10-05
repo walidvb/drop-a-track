@@ -1,19 +1,13 @@
 "use client";
 
-import type { CSSProperties } from "react";
 import { Artwork } from "@/components/ds/Artwork";
 import { Button } from "@/components/ds/Button";
+import { monoCaps } from "@/components/ds/styles";
 import { Texture } from "@/components/ds/Texture";
 import { fmtTime, type TrackView } from "@/components/ds/types";
 import { padNumber } from "@/lib/format";
 import styles from "./success.module.css";
 
-const mono: CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: 11,
-  letterSpacing: "var(--tracking-caps)",
-  textTransform: "uppercase",
-};
 
 /** Right after DROP!: your track, your number in the bag, then on to the bag. */
 export function DropSuccess({
@@ -50,7 +44,7 @@ export function DropSuccess({
     >
       <Texture className={styles.tex} color="var(--paper)" opacity={0.35} style={{ inset: -60 }} />
       <div className={styles.body}>
-        <div className={styles.top} style={{ ...mono, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className={styles.top} style={{ ...monoCaps, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span className={styles.dot} style={{ width: 10, height: 10, background: "var(--magenta)" }} />
             In the bag
@@ -131,7 +125,7 @@ export function DropSuccess({
             </div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>{track.duration ? fmtTime(track.duration, true) : ""}</div>
             <div style={{ fontFamily: "var(--font-body)", fontWeight: 800, fontSize: 14, color: "var(--gray-400)" }}>{track.artist}</div>
-            <div style={{ ...mono, color: "var(--gray-400)" }}>{track.source}</div>
+            <div style={{ ...monoCaps, color: "var(--gray-400)" }}>{track.source}</div>
           </div>
         </div>
 

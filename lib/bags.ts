@@ -1,8 +1,10 @@
 import { and, asc, count, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import type { MediaRef } from "@cucu/media/core";
+import type { TrackView } from "@/components/ds/types";
 import { resolveBandcampStream } from "@cucu/media/server";
 import { db } from "@/db";
 import { bags, drops, qrCodes } from "@/db/schema";
+import { relativeTime, SOURCE_LABEL } from "./format";
 import { bandcampThrottle } from "./throttle";
 
 export interface BagOwner {
@@ -58,17 +60,6 @@ const publicDrop = {
   createdAt: drops.createdAt,
 };
 
-/** A bag's public drops, newest first. */
-export async function getPublicDrops(bagId: number) {
-  return db
-    .select(publicDrop)
-    .from(drops)
-    .where(eq(drops.bagId, bagId))
-    .orderBy(desc(drops.createdAt), desc(drops.id));
-}
-
-export type PublicDrop = Awaited<ReturnType<typeof getPublicDrops>>[number];
-
 /** Every open bag (shirts with a handle), by shirt number, with its public drops newest first. */
 export async function getAllBags() {
   const owners = await db
@@ -87,12 +78,37 @@ export async function getAllBags() {
   return owners.map((o) => ({ ...o, handle: o.handle!, drops: rows.filter((d) => d.bagId === o.bagId) }));
 }
 
+export type PublicDrop = Awaited<ReturnType<typeof getAllBags>>[number]["drops"][number];
+
 export const mediaRefOf = (d: Pick<PublicDrop, "provider" | "url" | "providerTrackId" | "streamUrl">): MediaRef => ({
   provider: d.provider,
   url: d.url,
   providerTrackId: d.providerTrackId,
   streamUrl: d.streamUrl,
 });
+
+/** A drop as the player and the rows take it. */
+export type Track = TrackView & { media: MediaRef };
+
+export const toTrack = (d: PublicDrop, now: Date): Track => ({
+  id: String(d.id),
+  title: d.title,
+  artist: d.artist,
+  thumbnail: d.artworkUrl,
+  source: SOURCE_LABEL[d.provider],
+  duration: d.durationSec,
+  droppedBy: d.droppedBy,
+  droppedFrom: d.droppedFrom,
+  droppedAt: relativeTime(d.createdAt, now),
+  url: d.url,
+  media: mediaRefOf(d),
+});
+
+/** Every drop this browser (its uid) made, in any bag: to mark them "Your drop". */
+export async function getDropIdsBy(uid: string): Promise<string[]> {
+  const rows = await db.select({ id: drops.id }).from(drops).where(eq(drops.dropperUid, uid));
+  return rows.map((r) => String(r.id));
+}
 
 /** The drop any of these uids already made in this bag. */
 export async function findDropBy(bagId: number, uids: string[]): Promise<number | null> {

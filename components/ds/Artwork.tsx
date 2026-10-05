@@ -2,9 +2,9 @@
 
 /* eslint-disable @next/next/no-img-element -- remote provider artwork of unknown hosts, shown tiny and filtered */
 import { useState } from "react";
+import { sourceCode } from "@/lib/format";
 import { Texture } from "./Texture";
 
-const ABBR: Record<string, string> = { bandcamp: "BC", soundcloud: "SC", youtube: "YT" };
 
 export function Artwork({
   src,
@@ -22,8 +22,7 @@ export function Artwork({
 }) {
   // Remember which src failed rather than resetting a flag in an effect.
   const [failed, setFailed] = useState<string | null>(null);
-  const k = (source || "").toLowerCase().replace(/[^a-z]/g, "");
-  const ab = ABBR[k] || (source ? source.slice(0, 2).toUpperCase() : "--");
+  const ab = sourceCode(source);
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0, overflow: "hidden", background: "var(--ink)" }}>
       {src && failed !== src ? (

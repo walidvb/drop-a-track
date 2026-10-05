@@ -1,23 +1,21 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
-import { detectProvider, type MediaInfo, type MediaRef } from "@cucu/media/core";
-import { MediaEngine, usePlayerQueue } from "@cucu/media/react";
+import { useCallback, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { detectProvider, type MediaInfo } from "@cucu/media/core";
 import { Button } from "@/components/ds/Button";
 import { DropPreview, type DropDraft } from "@/components/ds/DropPreview";
-import { Player } from "@/components/ds/Player";
+import { monoCaps } from "@/components/ds/styles";
 import { Texture } from "@/components/ds/Texture";
-import { TrackList } from "@/components/ds/TrackList";
-import type { TrackView } from "@/components/ds/types";
 import { UrlForm, type UrlFormStatus } from "@/components/ds/UrlForm";
+import { FitText } from "@/components/FitText";
 import { padNumber, SOURCE_LABEL } from "@/lib/format";
+import type { HomeBag, HomeTrack } from "@/lib/home";
 import { isSpotify } from "@/lib/spotify";
 import { UID_STORAGE_KEY, isUid, newUid } from "@/lib/uid";
+import { Browse } from "../Browse";
 import bagStyles from "./bag.module.css";
 import { DropSuccess } from "./DropSuccess";
 import { SpotifyModal } from "./SpotifyModal";
-
-export type BagTrack = TrackView & { media: MediaRef };
 
 interface Owner {
   handle: string;
@@ -54,51 +52,10 @@ function ensureUid(cookieUid: string | null): string {
   return uid;
 }
 
-/** The desktop layout's breakpoint, as in bag.module.css. */
-const DESK = "(min-width: 900px)";
-
-/** One line, as big as fits (up to deskMax in the desktop layout). Measures and sets the size directly — no re-render. */
-function FitLine({
-  text,
-  max = 60,
-  deskMax = max,
-  min = 22,
-  style,
-}: {
-  text: string;
-  max?: number;
-  deskMax?: number;
-  min?: number;
-  style?: CSSProperties;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    const parent = el?.parentElement;
-    if (!el || !parent) return;
-    const fit = () => {
-      const top = matchMedia(DESK).matches ? deskMax : max;
-      el.style.fontSize = top + "px";
-      const w = parent.clientWidth;
-      const sw = el.scrollWidth;
-      if (w && sw) el.style.fontSize = Math.max(min, Math.min(top, Math.floor((top * w) / sw))) + "px";
-    };
-    fit();
-    const ro = new ResizeObserver(fit);
-    ro.observe(parent);
-    document.fonts?.ready.then(fit);
-    return () => ro.disconnect();
-  }, [text, max, deskMax, min]);
-  return (
-    <div style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
-      <div ref={ref} style={{ ...style, fontSize: max, whiteSpace: "nowrap", display: "inline-block" }}>
-        {text}
-      </div>
-    </div>
-  );
-}
-
+/** The wearer's handle, fitted to its line; the cap is --fit-max in bag.module.css (it grows on desktop). */
 const handleStyle: CSSProperties = {
+  display: "inline-block",
+  whiteSpace: "nowrap",
   fontFamily: "var(--font-display-tall)",
   lineHeight: 0.82,
   letterSpacing: "-0.02em",
@@ -106,14 +63,8 @@ const handleStyle: CSSProperties = {
 };
 const looksRight: CSSProperties = { margin: 0, fontFamily: "var(--font-display)", fontWeight: "normal", letterSpacing: "-0.02em" };
 const wordmark: CSSProperties = { fontFamily: "var(--font-display)", fontSize: "var(--wordmark)", lineHeight: 0.85 };
-const chip: CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: 11,
-  letterSpacing: "var(--tracking-caps)",
-  textTransform: "uppercase",
-};
-
-function Landing({
+/** The scan's first screen: who you scanned, their theme if any, and the link field. */
+function DropForm({
   owner,
   count,
   status,
@@ -182,9 +133,11 @@ function Landing({
             gap: 6,
           }}
         >
-          <span style={{ ...chip, background: "var(--paper)", padding: "3px 6px" }}>You scanned</span>
-          <div style={{ alignSelf: "stretch", display: "flex" }}>
-            <FitLine text={owner.handle} max={76} deskMax={190} min={24} style={handleStyle} />
+          <span style={{ ...monoCaps, background: "var(--paper)", padding: "3px 6px" }}>You scanned</span>
+          <div style={{ alignSelf: "stretch", display: "flex", overflow: "hidden" }}>
+            <FitText max={76} min={24} style={handleStyle}>
+              {owner.handle}
+            </FitText>
           </div>
           <div
             style={{
@@ -205,7 +158,7 @@ function Landing({
           <div style={{ display: "flex", flexDirection: "column", background: "var(--ink)", color: "var(--paper)" }}>
             <div
               style={{
-                ...chip,
+                ...monoCaps,
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
@@ -262,33 +215,40 @@ function draftFrom(info: MediaInfo, droppedBy: string): DropDraft {
   };
 }
 
+/**
+ * The drop flow, for a fresh scan (the page checked the ticket, and that this browser's
+ * cookie hasn't dropped here): drop form → preview → success. After a Skip or the drop,
+ * the bag itself is the home view (Browse) with this bag open.
+ */
 export function BagApp({
   owner,
   bagId,
-  initialTracks,
-  ticketValid,
-  serverDropId,
+  home,
+  mine,
   cookieUid,
 }: {
   owner: Owner;
   bagId: number;
-  initialTracks: BagTrack[];
-  ticketValid: boolean;
-  serverDropId: string | null;
+  /** Every bag and drop, as on the home page: shown after a Skip or the drop. */
+  home: { bags: HomeBag[]; drops: HomeTrack[] };
+  /** Drops this browser's cookie made elsewhere. */
+  mine: string[];
   cookieUid: string | null;
 }) {
   const storedDropId = useSyncExternalStore(noSubscribe, () => lsGet(dropKey(bagId)), () => null);
-  const [tracks, setTracks] = useState(initialTracks);
+  const [data, setData] = useState(home);
+  const tracks = data.bags.find((b) => b.handle === owner.handle)?.tracks ?? [];
   const [newDropId, setNewDropId] = useState<string | null>(null);
-  // Only highlight a stored drop that's still in the bag (an admin may have removed it).
-  const myDropId = newDropId ?? serverDropId ?? (tracks.some((t) => t.id === storedDropId) ? storedDropId : null);
+  // The cookie's uid hasn't dropped here, but this browser's stored one may have: only a drop
+  // still in the bag counts (an admin may have removed it).
+  const myDropId = newDropId ?? (tracks.some((t) => t.id === storedDropId) ? storedDropId : null);
   const [ticketSpent, setTicketSpent] = useState(false);
-  const canDrop = ticketValid && !ticketSpent && !myDropId;
+  const canDrop = !ticketSpent && !myDropId;
 
   const [view, setView] = useState<"landing" | "preview" | "success" | "bag">(canDrop ? "landing" : "bag");
   // The drop screens need a drop left; the success screen comes right after spending it.
   const shown = (view === "landing" || view === "preview") && !canDrop ? "bag" : view;
-  const [success, setSuccess] = useState<{ track: BagTrack; position: number } | null>(null);
+  const [success, setSuccess] = useState<{ track: HomeTrack; position: number } | null>(null);
 
   const [urlStatus, setUrlStatus] = useState<UrlFormStatus>("idle");
   const [urlMessage, setUrlMessage] = useState<string>();
@@ -296,22 +256,7 @@ export function BagApp({
   const [loading, setLoading] = useState(false);
   const [dropping, setDropping] = useState(false);
   const [dropError, setDropError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{ title: string; line: string } | null>(null);
   const readSeq = useRef(0);
-
-  const items = useMemo(() => tracks.map((t) => ({ id: t.id, media: t.media })), [tracks]);
-  const refreshStream = async (media: MediaRef) => {
-    const t = tracks.find((x) => x.media === media);
-    if (!t) return null;
-    const res = await fetch("/api/media/refresh", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dropId: Number(t.id) }),
-    });
-    return res.ok ? ((await res.json()) as { streamUrl: string }).streamUrl : null;
-  };
-  const queue = usePlayerQueue(items, { initialId: myDropId ?? tracks[0]?.id, refreshStream });
-  const current = tracks.find((t) => t.id === queue.currentId) ?? null;
 
   const showError = (message?: string) => {
     setUrlStatus(message ? "error" : "idle");
@@ -374,7 +319,7 @@ export function BagApp({
       const body = await res.json();
       if (res.status === 201) {
         const d = body.drop;
-        const t: BagTrack = {
+        const t: HomeTrack = {
           id: String(d.id),
           title: d.title,
           artist: d.artist,
@@ -386,23 +331,23 @@ export function BagApp({
           droppedAt: "Just now",
           url: d.url,
           media: { provider: d.provider, url: d.url, providerTrackId: d.providerTrackId, streamUrl: d.streamUrl },
+          handle: owner.handle,
+          bagNumber: owner.number,
         };
         lsSet(dropKey(bagId), t.id);
         lsSet(NAME_KEY, draft.droppedBy.trim());
-        setTracks((prev) => [t, ...prev]);
+        // Into the bag and the latest drops, so the bag shows it straight after.
+        setData((d) => ({
+          bags: d.bags.map((b) => (b.handle === owner.handle ? { ...b, tracks: [t, ...b.tracks] } : b)),
+          drops: [t, ...d.drops],
+        }));
         setNewDropId(t.id);
         setTicketSpent(true);
         setSuccess({ track: t, position: body.position });
-        setNotice({ title: "DROPPED.", line: `You’re #${padNumber(body.position)} in ${owner.handle}’s bag. That was your one.` });
-        queue.cue(t.id);
         setView("success");
         window.scrollTo(0, 0);
-      } else if (res.status === 409 || res.status === 403) {
-        setTicketSpent(true);
-        setNotice({ title: res.status === 409 ? "ALREADY DROPPED." : "SCAN AGAIN.", line: body.error });
-        setView("bag");
-        window.scrollTo(0, 0);
       } else {
+        // Including "already dropped" (409) and "scan again" (403): said under the DROP! button.
         setDropError(body.error ?? "Couldn’t drop that. Try again.");
       }
     } catch {
@@ -412,12 +357,28 @@ export function BagApp({
     }
   };
 
+  if (shown === "bag") {
+    const myDrops = myDropId && !mine.includes(myDropId) ? [...mine, myDropId] : mine;
+    const backToDrop = () => {
+      setView("landing");
+      window.scrollTo(0, 0);
+    };
+    return (
+      <Browse
+        {...data}
+        initialView={owner.handle}
+        mine={myDrops}
+        drop={canDrop ? { handle: owner.handle, onDrop: backToDrop } : undefined}
+      />
+    );
+  }
+
   const intoBag = `Dropping into ${owner.handle}’s bag`;
   return (
     <div className={bagStyles.shell}>
       <div style={{ flex: 1 }}>
         {shown === "landing" && (
-          <Landing
+          <DropForm
             owner={owner}
             count={tracks.length}
             status={urlStatus}
@@ -447,7 +408,7 @@ export function BagApp({
                   gap: 12,
                 }}
               >
-                <span style={{ ...chip, background: "var(--paper)", padding: "3px 6px" }}>{intoBag}</span>
+                <span style={{ ...monoCaps, background: "var(--paper)", padding: "3px 6px" }}>{intoBag}</span>
                 <h1 style={{ ...looksRight, fontSize: "min(15vh,15cqw)", lineHeight: 0.8 }}>
                   LOOKS
                   <br />
@@ -457,7 +418,7 @@ export function BagApp({
             </aside>
             <section className={bagStyles.pane}>
               <div className={bagStyles.mob} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <span style={chip}>{intoBag}</span>
+                <span style={monoCaps}>{intoBag}</span>
                 <h1 style={{ ...looksRight, fontSize: 44, lineHeight: 0.82 }}>
                   LOOKS
                   <br />
@@ -491,123 +452,7 @@ export function BagApp({
             }}
           />
         )}
-        {shown === "bag" && (
-          <main className={`${bagStyles.split} ${bagStyles.bagView}`}>
-            <header className={`${bagStyles.hero} ${bagStyles.bagHero}`} style={{ ["--hero-h" as string]: "260px" }}>
-              <Texture color="var(--magenta)" />
-              <div style={{ ...wordmark, position: "absolute", left: "var(--pad)", top: "var(--pad)" }}>
-                DROP A<br />
-                TRACK
-              </div>
-              <div
-                style={{
-                  position: "absolute",
-                  right: -4,
-                  top: 0,
-                  bottom: 0,
-                  writingMode: "vertical-rl",
-                  transform: "rotate(180deg)",
-                  fontFamily: "var(--font-display)",
-                  fontSize: "var(--bag)",
-                  lineHeight: 0.8,
-                  whiteSpace: "nowrap",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                BAG
-              </div>
-              <div
-                style={{
-                  position: "absolute",
-                  right: "var(--edge)",
-                  top: "var(--pad-tight)",
-                  fontFamily: "var(--font-display)",
-                  fontSize: "var(--num)",
-                  lineHeight: 0.8,
-                  color: "transparent",
-                  WebkitTextStroke: "2px var(--ink)",
-                }}
-              >
-                #{padNumber(owner.number)}
-              </div>
-              <div
-                style={{
-                  position: "absolute",
-                  left: "var(--pad)",
-                  right: "var(--edge-text)",
-                  bottom: "var(--pad-tight)",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "flex-start",
-                  gap: 6,
-                }}
-              >
-                <span style={{ ...chip, background: "var(--paper)", padding: "3px 6px", whiteSpace: "nowrap", flexShrink: 0 }}>
-                  Since {owner.since} · {tracks.length} {tracks.length === 1 ? "track" : "tracks"}
-                </span>
-                <div style={{ alignSelf: "stretch", display: "flex", background: "var(--ink)", color: "var(--paper)", padding: "8px 10px 4px" }}>
-                  <FitLine text={owner.handle} max={60} deskMax={150} min={22} style={handleStyle} />
-                </div>
-              </div>
-            </header>
-            <div className={bagStyles.col}>
-              {notice && (
-                <div role="status" style={{ background: "var(--ink)", color: "var(--paper)", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 4 }}>
-                  <span style={{ fontFamily: "var(--font-display)", fontSize: 24, lineHeight: 0.9 }}>{notice.title}</span>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--gray-400)" }}>{notice.line}</span>
-                </div>
-              )}
-              {canDrop && (
-                <div style={{ display: "flex", justifyContent: "flex-end", padding: "12px 16px" }}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    iconRight="→"
-                    onClick={() => {
-                      if (queue.playing) queue.toggle(); // the controls stay behind in the bag
-                      setView("landing");
-                    }}
-                    style={{ padding: 0 }}
-                  >
-                    Still want to drop?
-                  </Button>
-                </div>
-              )}
-              {/* A drop from this visit slides in at the top. */}
-              <div className={newDropId ? bagStyles.rowIn : undefined}>
-                <TrackList
-                  title={null}
-                  tracks={tracks}
-                  highlightId={myDropId}
-                  activeId={queue.currentId}
-                  playing={queue.playing}
-                  onSelect={(t) => queue.toggle(t.id)}
-                />
-              </div>
-              <div style={{ flex: 1, minHeight: 24 }} />
-              {tracks.length > 0 && (
-                <div style={{ position: "sticky", bottom: 0, zIndex: 10 }}>
-                  <Player
-                    track={current}
-                    playing={queue.playing}
-                    buffering={queue.buffering}
-                    position={queue.progress.playedSeconds}
-                    duration={queue.progress.duration}
-                    onToggle={() => queue.toggle()}
-                    onNext={tracks.length > 1 ? queue.next : undefined}
-                    seekInputProps={queue.seekInputProps}
-                  />
-                </div>
-              )}
-            </div>
-          </main>
-        )}
       </div>
-      {/* Mounted on every view, paused: the provider is loaded before the first
-          tap (iOS only plays inside a gesture), and leaving the bag doesn't cut it. */}
-      {tracks.length > 0 && <MediaEngine {...queue.engineProps} />}
     </div>
   );
 }

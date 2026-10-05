@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { monthYear, relativeTime } from "./format";
+import { monthYear, relativeTime, sourceCode } from "./format";
 
 describe("format", () => {
   const now = new Date("2026-09-29T12:00:00Z");
@@ -16,5 +16,12 @@ describe("format", () => {
   it("falls back to month.year, like the poster", () => {
     expect(relativeTime(new Date("2026-06-01T00:00:00Z"), now)).toBe("06.2026");
     expect(monthYear(new Date("2026-06-15T00:00:00Z"))).toBe("06.2026");
+  });
+
+  it("shortens a provider's display name", () => {
+    expect(sourceCode("SoundCloud")).toBe("SC");
+    expect(sourceCode("YouTube")).toBe("YT");
+    expect(sourceCode("Mixcloud")).toBe("MI");
+    expect(sourceCode(null)).toBe("--");
   });
 });

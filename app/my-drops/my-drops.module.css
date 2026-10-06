@@ -1,0 +1,88 @@
+/* Your drops. Phone first: one 430px column, the hero over the list. From 900px the hero
+   takes the left side, sticky and full height (as in the drop flow), and the list fills the
+   right side edge to edge: pending drops on top, past drops below. */
+.page { max-width: 430px; min-height: 100vh; margin: 0 auto; background: var(--paper); display: flex; flex-direction: column }
+.desk { display: none }
+
+.hero {
+  position: relative; flex-shrink: 0; height: 220px; overflow: hidden; container-type: inline-size;
+  border-bottom: var(--border-w-heavy) solid var(--ink);
+}
+.wordmark { position: absolute; left: 16px; top: 16px; font-family: var(--font-display); font-size: 16px; line-height: 0.85 }
+.heroFoot { position: absolute; left: 16px; right: 16px; bottom: 14px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px }
+.tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: var(--tracking-caps); text-transform: uppercase; background: var(--paper); padding: 3px 6px }
+.title {
+  margin: 0; padding: 8px 10px 4px; background: var(--ink); color: var(--paper);
+  font-family: var(--font-display); font-weight: normal; font-size: min(40px, 8.2cqw); line-height: 0.82; letter-spacing: -0.02em;
+}
+.count { flex-shrink: 0; font-family: var(--font-display); font-size: min(52px, 10.5cqw); line-height: 0.8; color: transparent; -webkit-text-stroke: 2px var(--ink) }
+
+/* Hovers invert, as everywhere in the system; links go magenta. */
+.back {
+  position: absolute; right: 16px; top: 10px; min-height: 44px; display: flex; align-items: center; padding: 0 10px;
+  background: var(--paper); color: var(--ink); text-decoration: none; font-family: var(--font-mono); font-size: 12px;
+}
+.back:hover { background: var(--ink); color: var(--paper) }
+
+.list { flex: 1; display: flex; flex-direction: column }
+/* Section heads: on phones only DROPPED has one, ruled above it; from 900px PENDING and DROPPED both do, ruled below. */
+.head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px }
+.head h2 { margin: 0; font-family: var(--font-display); font-weight: normal; font-size: 18px; line-height: 1 }
+.head span, .meta, .foot, .empty { font-family: var(--font-mono); font-size: 11px; color: var(--gray-600) }
+.pendingHead { display: none }
+.pastHead { margin-top: 20px; padding: 10px 16px 8px; border-top: var(--border-w-heavy) solid var(--ink) }
+.empty { margin: 0; padding: 20px 16px; font-size: 13px; border-bottom: var(--rule) }
+
+.pending { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px 16px; border-bottom: var(--rule) }
+.num { font-family: var(--font-display); font-size: 22px; line-height: 1; color: transparent; -webkit-text-stroke: 1.5px var(--ink) }
+.who { display: flex; flex-direction: column; gap: 4px; min-width: 0 }
+.handle { font-family: var(--font-display-wide); font-size: 17px; line-height: 1.2; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+
+/* Drop →: the system's primary button, as a link to the bag. */
+.drop {
+  display: inline-flex; align-items: center; gap: 10px; height: var(--control-h); padding: 0 20px; white-space: nowrap;
+  background: var(--ink); color: var(--paper); border: var(--border-w) solid var(--ink); text-decoration: none;
+  font-family: var(--font-heavy); font-size: 14px; line-height: 1; letter-spacing: 0.04em; text-transform: uppercase;
+  transition: background var(--dur-fast) var(--ease-snap), color var(--dur-fast) var(--ease-snap);
+}
+.drop:hover { background: var(--paper); color: var(--ink) }
+.drop:active { background: var(--magenta); color: var(--ink) }
+
+.past {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 56px; padding: 8px 16px;
+  border-top: 1px solid var(--border-subtle); color: var(--ink); text-decoration: none;
+}
+.past .handle { font-size: 14px; line-height: 1; color: var(--gray-600) }
+.past .meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.pos { font-family: var(--font-mono); font-size: 12px; white-space: nowrap }
+.past:hover .pos { color: var(--magenta) }
+.foot { margin: 0; padding: 12px 16px; border-top: 1px solid var(--border-subtle) }
+
+@media (min-width: 900px) {
+  .page { max-width: none; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start }
+  .mob { display: none }
+  .desk { display: inline }
+
+  .hero { position: sticky; top: 0; height: 100vh; border-bottom: 0; border-right: var(--border-w-heavy) solid var(--ink) }
+  .wordmark { left: 32px; top: 32px; font-size: 24px }
+  .heroFoot { left: 32px; right: 32px; bottom: 32px; gap: 8px }
+  .tag { font-size: 12px; padding: 4px 8px }
+  .title { padding: 14px 16px 6px; font-size: min(68px, 15vh, 8.2cqw) }
+  .count { font-size: min(84px, 20vh, 10.5cqw) }
+  .back { right: 32px; top: 24px; min-height: 48px; padding: 0 14px; font-size: 13px }
+
+  .list { min-height: 100vh }
+  .head h2 { font-size: 24px }
+  .head span, .meta, .foot { font-size: 12px }
+  .pendingHead { display: flex; padding: 32px 40px 12px; border-bottom: var(--border-w-heavy) solid var(--ink) }
+  .pastHead { margin-top: 0; padding: 40px 40px 12px; border-top: 0; border-bottom: var(--border-w-heavy) solid var(--ink) }
+  .empty { padding: 20px 40px }
+  .pending { grid-template-columns: 64px minmax(0, 1fr) auto; gap: 16px; padding: 16px 40px }
+  .num { font-size: 30px }
+  .who { gap: 6px }
+  .handle { font-size: 22px; line-height: 1.15 }
+  .past { min-height: 64px; gap: 16px; padding: 10px 40px; border-top: 0; border-bottom: 1px solid var(--border-subtle) }
+  .past .handle { font-size: 16px; line-height: 1.15 }
+  .pos { font-size: 13px }
+  .foot { padding: 16px 40px 24px }
+}

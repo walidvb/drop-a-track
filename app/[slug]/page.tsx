@@ -5,8 +5,8 @@ import { getBagByHandle, getDropIdsBy } from "@/lib/bags";
 import { monthYear } from "@/lib/format";
 import { bagPath, handleFromSlug } from "@/lib/handle";
 import { loadHome } from "@/lib/home";
-import { ticketCookieName, verifyTicket } from "@/lib/ticket";
 import { UID_COOKIE, isUid } from "@/lib/uid";
+import { pendingDrops } from "@/lib/my-drops";
 import { Browse } from "../Browse";
 import { BagApp } from "./BagApp";
 
@@ -16,8 +16,8 @@ export async function generateMetadata({ params }: PageProps<"/[slug]">): Promis
 }
 
 /**
- * A shirt's current bag. With a fresh scan (a ticket cookie) and no drop yet: the drop flow.
- * Otherwise it's the home page with this bag open in its column, as when opened from there.
+ * A shirt's current bag. With a fresh scan (a ticket cookie) and no drop yet, a pending drop: the
+ * drop flow. Otherwise it's the home page with this bag open in its column, as when opened from there.
  */
 export default async function BagPage({ params }: PageProps<"/[slug]">) {
   const { slug } = await params;
@@ -29,13 +29,9 @@ export default async function BagPage({ params }: PageProps<"/[slug]">) {
 
   const jar = await cookies();
   const uid = jar.get(UID_COOKIE)?.value;
-  const [ticketValid, home, mine] = await Promise.all([
-    verifyTicket(jar.get(ticketCookieName(bag.bagId))?.value, bag.bagId),
-    loadHome(),
-    isUid(uid) ? getDropIdsBy(uid) : ([] as string[]),
-  ]);
-  const dropped = home.bags.find((b) => b.handle === bag.handle)?.tracks.some((t) => mine.includes(t.id));
-  if (!ticketValid || dropped) return <Browse {...home} initialView={bag.handle} mine={mine} />;
+  const [home, mine] = await Promise.all([loadHome(), isUid(uid) ? getDropIdsBy(uid) : ([] as string[])]);
+  const pending = await pendingDrops(jar.getAll(), home.bags, mine);
+  if (!pending.some((o) => o.handle === bag.handle)) return <Browse {...home} initialView={bag.handle} mine={mine} pendingDrops={pending.length} />;
 
   return (
     <BagApp
@@ -43,6 +39,7 @@ export default async function BagPage({ params }: PageProps<"/[slug]">) {
       bagId={bag.bagId}
       home={home}
       mine={mine}
+      stillPending={pending.filter((o) => o.handle !== bag.handle).map((o) => o.handle)}
       cookieUid={isUid(uid) ? uid : null}
     />
   );

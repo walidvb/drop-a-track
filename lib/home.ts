@@ -4,6 +4,7 @@ import { monthYear } from "./format";
 /** A drop on the home page also knows which bag it went into. */
 export type HomeTrack = Track & { handle: string; bagNumber: number };
 export interface HomeBag {
+  bagId: number;
   handle: string;
   number: number;
   since: string;
@@ -16,6 +17,7 @@ export async function loadHome(): Promise<{ bags: HomeBag[]; drops: HomeTrack[] 
   const now = new Date();
   const all = await getAllBags();
   const bags: HomeBag[] = all.map((b) => ({
+    bagId: b.bagId,
     handle: b.handle,
     number: b.number,
     since: monthYear(b.bagCreatedAt),

@@ -31,6 +31,7 @@ export function Browse({
   initialView = null,
   mine = [],
   drop,
+  pendingDrops = 0,
 }: {
   bags: HomeBag[];
   drops: HomeTrack[];
@@ -39,6 +40,8 @@ export function Browse({
   mine?: string[];
   /** A drop still to make (a fresh scan): that bag offers to go back to the drop form. */
   drop?: { handle: string; onDrop: () => void };
+  /** Bags this browser scanned and hasn't dropped into yet: counted on the poster's Your drops. */
+  pendingDrops?: number;
 }) {
   const asideRef = useRef<HTMLElement>(null);
   /** The panel shows the latest drops (null) or one bag, by handle. */
@@ -124,7 +127,7 @@ export function Browse({
       className={shown ? styles.shown : undefined}
       style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", background: "var(--paper)" }}
     >
-      <Poster onLatestDrops={scrollToPanel} onGetShirt={() => setShirt(true)} />
+      <Poster pendingDrops={pendingDrops} onLatestDrops={scrollToPanel} onGetShirt={() => setShirt(true)} />
 
       <aside
         ref={asideRef}

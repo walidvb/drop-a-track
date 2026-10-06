@@ -1,25 +1,29 @@
 "use client";
 
+import Link from "next/link";
 import { Artwork } from "@/components/ds/Artwork";
 import { Button } from "@/components/ds/Button";
-import { monoCaps } from "@/components/ds/styles";
+import { ellipsis, monoCaps } from "@/components/ds/styles";
 import { Texture } from "@/components/ds/Texture";
 import { fmtTime, type TrackView } from "@/components/ds/types";
 import { padNumber } from "@/lib/format";
 import styles from "./success.module.css";
 
 
-/** Right after DROP!: your track, your number in the bag, then on to the bag. */
+/** Right after DROP!: your track, your number in the bag, then on to the bag, or to the next pending drop. */
 export function DropSuccess({
   handle,
   position,
   track,
+  stillPending,
   onOpenBag,
 }: {
   handle: string;
   /** 1-based: how many tracks the bag holds now that yours is in. */
   position: number;
   track: TrackView;
+  /** The other bags this browser can still drop into, by handle. */
+  stillPending: string[];
   onOpenBag: () => void;
 }) {
   const num = padNumber(position);
@@ -130,6 +134,19 @@ export function DropSuccess({
         </div>
 
         <div className={styles.cta}>
+          {stillPending.length > 0 && (
+            <Link href="/my-drops" className={styles.next}>
+              <span style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+                <span style={{ fontFamily: "var(--font-display-wide)", fontSize: 15, lineHeight: 1, textTransform: "uppercase" }}>
+                  {stillPending.length} {stillPending.length === 1 ? "drop" : "drops"} still pending
+                </span>
+                <span style={{ ...ellipsis, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--gray-400)" }}>{stillPending.join(" · ")}</span>
+              </span>
+              <span aria-hidden style={{ fontFamily: "var(--font-mono)", fontSize: 20 }}>
+                →
+              </span>
+            </Link>
+          )}
           <div className={styles.btn}>
             <Button variant="inverse" size="lg" fullWidth iconRight="→" onClick={onOpenBag}>
               Open the bag

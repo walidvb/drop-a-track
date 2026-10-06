@@ -6,7 +6,7 @@ import { padNumber } from "@/lib/format";
 import { bagPath } from "@/lib/handle";
 import { getShirtByNumber, parseShirtNumber } from "@/lib/owner";
 import { PASSWORD_MIN } from "@/lib/owner-auth";
-import { ticketCookieName, verifyTicket } from "@/lib/ticket";
+import { ticketCookieName, verifyFreshTicket } from "@/lib/ticket";
 import { setPasswordAction } from "../actions";
 import { ErrorLine, Field, Shell, formClass, heading, lead, linkClass, mono, outlined } from "../ui";
 
@@ -23,7 +23,7 @@ export default async function SetupPage({ searchParams }: PageProps<"/manage/set
   const shirt = number ? await getShirtByNumber(number) : null;
   if (!shirt?.handle || !shirt.bagId) redirect("/");
   if (shirt.passwordHash) redirect(bagPath(shirt.handle));
-  const scanned = await verifyTicket((await cookies()).get(ticketCookieName(shirt.bagId))?.value, shirt.bagId);
+  const scanned = await verifyFreshTicket((await cookies()).get(ticketCookieName(shirt.bagId))?.value, shirt.bagId);
 
   return (
     <Shell>

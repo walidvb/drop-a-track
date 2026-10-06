@@ -31,9 +31,10 @@
 .line { animation: rise 400ms ease-out 1000ms both }
 .details { animation: rise 400ms ease-out 1100ms both }
 .btn { animation: rise 400ms ease-out 1200ms both }
+.next { animation: rise 400ms ease-out 1150ms both }
 
 @media (prefers-reduced-motion: reduce) {
-  .screen, .tex, .dot, .art, .head, .line, .details, .btn { animation: none }
+  .screen, .tex, .dot, .art, .head, .line, .details, .btn, .next { animation: none }
   .num { animation: none; transform: rotate(-5deg) }
 }
 
@@ -43,7 +44,13 @@
 .top { padding: 20px 24px 0 }
 .artCol { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 32px 24px }
 .text { padding: 0 24px; display: flex; flex-direction: column; gap: 16px }
-.cta { padding: 20px 24px 28px }
+.cta { padding: 20px 24px 28px; display: flex; flex-direction: column; gap: 16px }
+/* The other drops still pending: the next one, if there is one. */
+.next {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px;
+  border-top: 2px solid var(--paper); border-bottom: 1px solid var(--gray-600); color: var(--paper); text-decoration: none;
+}
+.next:hover { color: var(--magenta) }
 
 @media (min-width: 900px) {
   .body {

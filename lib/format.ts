@@ -14,6 +14,9 @@ export const sourceCode = (source?: string | null) =>
 
 export const padNumber = (n: number) => String(n).padStart(3, "0");
 
+/** A count as on Your drops: "03". */
+export const padCount = (n: number) => String(n).padStart(2, "0");
+
 /** "06.2026", as on the poster. */
 export const monthYear = (d: Date) => `${String(d.getUTCMonth() + 1).padStart(2, "0")}.${d.getUTCFullYear()}`;
 

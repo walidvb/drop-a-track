@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { Button } from "@/components/ds/Button";
 import { monoCaps } from "@/components/ds/styles";
 import { Texture } from "@/components/ds/Texture";
 import { FitText } from "@/components/FitText";
+import { padCount } from "@/lib/format";
 import styles from "./browse.module.css";
 
 const STEPS = [
@@ -10,11 +12,34 @@ const STEPS = [
   ["03", "Get a drop", "They drop a single link into your bag. One per person."],
 ];
 
+/** The way to /my-drops: there for good, counting pending drops (and nudging) when there are any. */
+function YourDrops({ pending }: { pending: number }) {
+  return (
+    <Link
+      href="/my-drops"
+      className={pending > 0 ? `${styles.yourDrops} ${styles.waiting}` : styles.yourDrops}
+      aria-label={pending > 0 ? `Your drops, ${pending} pending` : undefined}
+    >
+      <span className={styles.yourDropsLabel}>Your drops</span>
+      {pending > 0 && <span className={styles.yourDropsCount}>{padCount(pending)}</span>}
+    </Link>
+  );
+}
+
 /**
  * The D.A.T poster: the drifting moiré, the pitch and the three steps, with DROP A and TRACK
  * fitted to its edges. It comes in (see browse.module.css) once Browse marks the page .shown.
  */
-export function Poster({ onLatestDrops, onGetShirt }: { onLatestDrops: () => void; onGetShirt: () => void }) {
+export function Poster({
+  pendingDrops,
+  onLatestDrops,
+  onGetShirt,
+}: {
+  /** Shown on Your drops when there are any. */
+  pendingDrops: number;
+  onLatestDrops: () => void;
+  onGetShirt: () => void;
+}) {
   return (
   <main
     style={{
@@ -52,20 +77,31 @@ export function Poster({ onLatestDrops, onGetShirt }: { onLatestDrops: () => voi
             <Button variant="primary" size="md" iconRight="→" onClick={onGetShirt}>
               Get your own
             </Button>
+            <span className={styles.stackedOnly}>
+              <YourDrops pending={pendingDrops} />
+            </span>
           </div>
         </div>
-        <span
+        {/* Side by side when there's room, else D.A.T over Your drops. */}
+        <div
           className={styles.reveal}
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "clamp(48px,7vw,96px)",
-            lineHeight: 0.8,
-            color: "transparent",
-            WebkitTextStroke: "2px var(--ink)",
-          }}
+          style={{ display: "flex", flexWrap: "wrap-reverse", justifyContent: "flex-end", alignItems: "flex-start", gap: "12px 24px" }}
         >
-          D.A.T
-        </span>
+          <span className={styles.wideOnly}>
+            <YourDrops pending={pendingDrops} />
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(48px,7vw,96px)",
+              lineHeight: 0.8,
+              color: "transparent",
+              WebkitTextStroke: "2px var(--ink)",
+            }}
+          >
+            D.A.T
+          </span>
+        </div>
       </header>
       <div style={{ flex: 1 }} />
       <div className={styles.reveal} style={{ display: "flex", alignItems: "flex-end", gap: 8, minWidth: 0 }}>

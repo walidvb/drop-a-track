@@ -14,7 +14,7 @@ import {
   verifyPassword,
 } from "@/lib/owner-auth";
 import { claim } from "@/lib/throttle";
-import { ticketCookieName, verifyTicket } from "@/lib/ticket";
+import { ticketCookieName, verifyFreshTicket } from "@/lib/ticket";
 import type { ManageError } from "./ui";
 
 const fail = (to: string, error: ManageError): never => redirect(`${to}${to.includes("?") ? "&" : "?"}error=${error}`);
@@ -38,7 +38,7 @@ export async function setPasswordAction(formData: FormData) {
   const here = `/manage/setup?n=${shirt.number}`;
   if (shirt.passwordHash) return redirect(`/manage?n=${shirt.number}`);
   const ticket = (await cookies()).get(ticketCookieName(shirt.bagId))?.value;
-  if (!(await verifyTicket(ticket, shirt.bagId))) return fail(here, "scan");
+  if (!(await verifyFreshTicket(ticket, shirt.bagId))) return fail(here, "scan");
   if (password.length < PASSWORD_MIN) return fail(here, "short");
   if (password.length > PASSWORD_MAX) return fail(here, "long");
   if (password !== formData.get("again")) return fail(here, "mismatch");

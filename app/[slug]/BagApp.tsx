@@ -85,6 +85,7 @@ export function BagApp({
   bagId,
   home,
   mine,
+  stillPending,
   cookieUid,
 }: {
   owner: Owner;
@@ -93,6 +94,8 @@ export function BagApp({
   home: { bags: HomeBag[]; drops: HomeTrack[] };
   /** Drops this browser's cookie made elsewhere. */
   mine: string[];
+  /** The other bags this browser can still drop into, by handle. */
+  stillPending: string[];
   cookieUid: string | null;
 }) {
   const storedDropId = useSyncExternalStore(noSubscribe, () => lsGet(dropKey(bagId)), () => null);
@@ -280,6 +283,7 @@ export function BagApp({
         initialView={owner.handle}
         mine={myDrops}
         drop={canDrop ? { handle: owner.handle, onDrop: backToDrop } : undefined}
+        pendingDrops={stillPending.length + (canDrop ? 1 : 0)}
       />
     );
   }
@@ -373,6 +377,7 @@ export function BagApp({
             handle={owner.handle}
             position={success.position}
             track={success.track}
+            stillPending={stillPending}
             onOpenBag={() => {
               setView("bag");
               window.scrollTo(0, 0);

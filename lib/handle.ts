@@ -2,7 +2,7 @@
 export const HANDLE_PATTERN = /^[a-z0-9._-]{2,30}$/;
 
 /** Paths the app itself owns: a bag there could never be reached. */
-const RESERVED = new Set(["admin", "api", "closed", "manage", "s", "favicon.ico"]);
+const RESERVED = new Set(["admin", "api", "closed", "manage", "my-drops", "s", "favicon.ico"]);
 
 /** A handle as typed: case-insensitive, a stray leading "@" forgiven. */
 export function parseHandle(raw: string): string | null {

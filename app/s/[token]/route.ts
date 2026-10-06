@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getScanTarget } from "@/lib/bags";
 import { bagPath } from "@/lib/handle";
-import { issueTicket, ticketCookieName, TICKET_TTL_SECONDS } from "@/lib/ticket";
+import { issueTicket, ticketCookieName, TICKET_MAX_AGE } from "@/lib/ticket";
 import { parseToken } from "@/lib/token";
 import { UID_COOKIE, UID_MAX_AGE, isUid, newUid } from "@/lib/uid";
 
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/s/[token]">)
     sameSite: "lax",
     secure,
     path: "/",
-    maxAge: TICKET_TTL_SECONDS,
+    maxAge: TICKET_MAX_AGE,
   });
   if (!isUid(request.cookies.get(UID_COOKIE)?.value)) {
     res.cookies.set(UID_COOKIE, newUid(), { httpOnly: true, sameSite: "lax", secure, path: "/", maxAge: UID_MAX_AGE });

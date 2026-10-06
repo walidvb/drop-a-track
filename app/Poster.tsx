@@ -74,7 +74,7 @@ export function Poster({ onLatestDrops, onGetShirt }: { onLatestDrops: () => voi
           style={{ maxWidth: 560, minWidth: 0, flex: "0 1 560px", background: "var(--paper)", display: "flex", flexDirection: "column" }}
         >
           <p style={{ margin: 0, padding: "12px 14px", fontWeight: 500, fontSize: "clamp(15px,1.3vw,17px)", lineHeight: 1.25, textWrap: "pretty" }}>
-            A participatory project for music lovers, ever changing, ever evolving. Out of the algorithm, into the hands of the people you meet.
+            Inspired by mixtapes passed hand to hand in simpler times, the D.A.T club is a participatory project by and for music lovers.
           </p>
           <div className={styles.steps}>
             {STEPS.map(([n, title, detail]) => (

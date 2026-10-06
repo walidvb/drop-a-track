@@ -243,11 +243,19 @@ export function DropPreview({
   onDrop,
   onBack,
   dropLabel = "Drop!",
+  pendingLabel,
+  backLabel = "Change link",
+  fieldsNote = "Pulled from the link. Fix it if it’s wrong.",
   note = "One drop per person. No take-backs.",
 }: {
   draft: DropDraft | null;
   loading?: boolean;
   dropping?: boolean;
+  /** Something the drop waits on, e.g. "Uploading… 40%": the button says it, and can't be pressed. */
+  pendingLabel?: string | null;
+  backLabel?: string;
+  /** Under title and artist: where they came from. */
+  fieldsNote?: string;
   error?: string | null;
   /** Takes an update, not a draft: Share location lands seconds later, onto whatever was typed meanwhile. */
   onChange: (update: (draft: DropDraft) => DropDraft) => void;
@@ -308,7 +316,7 @@ export function DropPreview({
           <Field label="Title" value={d.title} onChange={(v) => set("title", v)} font="var(--font-display-wide)" upper />
           <Field label="Artist" value={d.artist} onChange={(v) => set("artist", v)} />
           <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--text-secondary)", marginTop: "-6px" }}>
-            Pulled from the link. Fix it if it{"’"}s wrong.
+            {fieldsNote}
           </span>
           <div
             style={{
@@ -341,16 +349,16 @@ export function DropPreview({
         variant="accent"
         size="lg"
         fullWidth
-        disabled={busy || dropping || !ready}
+        disabled={busy || dropping || !!pendingLabel || !ready}
         onClick={onDrop}
         style={{ fontSize: "24px", fontFamily: "var(--font-display)" }}
       >
-        {dropping ? "Dropping…" : dropLabel}
+        {dropping ? "Dropping…" : pendingLabel || dropLabel}
       </Button>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
         {onBack ? (
           <Button variant="ghost" size="sm" iconLeft={"←"} onClick={onBack} style={{ padding: 0 }}>
-            Change link
+            {backLabel}
           </Button>
         ) : (
           <span />

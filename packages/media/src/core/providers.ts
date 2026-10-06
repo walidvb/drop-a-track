@@ -3,9 +3,10 @@
  * play. Isomorphic, no dependencies: safe in the browser and on the server.
  */
 
-export type Provider = "youtube" | "soundcloud" | "bandcamp";
+/** `file`: a plain audio URL (an upload), played as is. Never detected from a pasted link. */
+export type Provider = "youtube" | "soundcloud" | "bandcamp" | "file";
 
-export const PROVIDERS: readonly Provider[] = ["youtube", "soundcloud", "bandcamp"];
+export const PROVIDERS: readonly Provider[] = ["youtube", "soundcloud", "bandcamp", "file"];
 
 /** `www.`, `m.`, `music.` and `on.` are the same site for our purposes. */
 const site = (host: string) => host.toLowerCase().replace(/^(www|m|music|on)\./, "");

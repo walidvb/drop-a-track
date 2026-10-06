@@ -1,29 +1,20 @@
 "use client";
 
-import { useCallback, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { upload as uploadBlob } from "@vercel/blob/client";
 import { detectProvider, type MediaInfo } from "@cucu/media/core";
-import { Button } from "@/components/ds/Button";
 import { DropPreview, type DropDraft } from "@/components/ds/DropPreview";
 import { monoCaps } from "@/components/ds/styles";
 import { Texture } from "@/components/ds/Texture";
-import { UrlForm, type UrlFormStatus } from "@/components/ds/UrlForm";
-import { FitText } from "@/components/FitText";
-import { padNumber, SOURCE_LABEL } from "@/lib/format";
+import type { UrlFormStatus } from "@/components/ds/UrlForm";
+import { uploadPathname } from "@/lib/audio-file";
+import { SOURCE_LABEL } from "@/lib/format";
 import type { HomeBag, HomeTrack } from "@/lib/home";
-import { isSpotify } from "@/lib/spotify";
 import { UID_STORAGE_KEY, isUid, newUid } from "@/lib/uid";
 import { Browse } from "../Browse";
 import bagStyles from "./bag.module.css";
+import { DropForm, type Owner, type PickedAudio } from "./DropForm";
 import { DropSuccess } from "./DropSuccess";
-import { SpotifyModal } from "./SpotifyModal";
-
-interface Owner {
-  handle: string;
-  number: number;
-  since: string;
-  /** The wearer's prompt for this bag, if they set one. */
-  theme: string | null;
-}
 
 const NAME_KEY = "dat-name";
 const dropKey = (bagId: number) => `dat-drop:${bagId}`;
@@ -52,148 +43,17 @@ function ensureUid(cookieUid: string | null): string {
   return uid;
 }
 
-/** The wearer's handle, fitted to its line; the cap is --fit-max in bag.module.css (it grows on desktop). */
-const handleStyle: CSSProperties = {
-  display: "inline-block",
-  whiteSpace: "nowrap",
-  fontFamily: "var(--font-display-tall)",
-  lineHeight: 0.82,
-  letterSpacing: "-0.02em",
-  textTransform: "uppercase",
-};
 const looksRight: CSSProperties = { margin: 0, fontFamily: "var(--font-display)", fontWeight: "normal", letterSpacing: "-0.02em" };
 const wordmark: CSSProperties = { fontFamily: "var(--font-display)", fontSize: "var(--wordmark)", lineHeight: 0.85 };
-/** The scan's first screen: who you scanned, their theme if any, and the link field. */
-function DropForm({
-  owner,
-  count,
-  status,
-  message,
-  onSubmitUrl,
-  onSkip,
-  onError,
-}: {
-  owner: Owner;
-  count: number;
-  status: UrlFormStatus;
-  message?: string;
-  onSubmitUrl: (url: string) => void;
-  onSkip: () => void;
-  onError: (message?: string) => void;
-}) {
-  const [val, setVal] = useState("");
-  const [spotify, setSpotify] = useState<string | null>(null);
-  const submit = (v: string) => {
-    if (isSpotify(v)) return setSpotify(v.trim());
-    if (!detectProvider(v)) return onError("Bandcamp, SoundCloud or YouTube links only.");
-    onSubmitUrl(v.trim());
-  };
-  const change = (v: string) => {
-    const pasted = !val && v.length > 12;
-    setVal(v);
-    onError(undefined);
-    if (pasted && (detectProvider(v) || isSpotify(v))) submit(v);
-  };
-  const closeSpotify = useCallback(() => {
-    setSpotify(null);
-    setVal("");
-    setTimeout(() => document.getElementById("dat-url")?.focus(), 0);
-  }, []);
-  return (
-    <main className={bagStyles.split}>
-      <section className={`${bagStyles.hero} ${bagStyles.landingHero}`} style={{ ["--hero-h" as string]: "360px" }}>
-        <Texture color="var(--magenta)" />
-        <div style={{ ...wordmark, position: "absolute", left: "var(--pad)", top: "var(--pad)" }}>
-          DROP A<br />
-          TRACK
-        </div>
-        <div
-          style={{
-            position: "absolute",
-            right: "var(--pad)",
-            top: "var(--pad)",
-            fontFamily: "var(--font-display)",
-            fontSize: "var(--num)",
-            lineHeight: 0.8,
-            color: "transparent",
-            WebkitTextStroke: "2px var(--ink)",
-          }}
-        >
-          #{padNumber(owner.number)}
-        </div>
-        <div
-          style={{
-            position: "absolute",
-            left: "var(--pad)",
-            right: "var(--pad)",
-            bottom: "var(--pad-tight)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            gap: 6,
-          }}
-        >
-          <span style={{ ...monoCaps, background: "var(--paper)", padding: "3px 6px" }}>You scanned</span>
-          <div style={{ alignSelf: "stretch", display: "flex", overflow: "hidden" }}>
-            <FitText max={76} min={24} style={handleStyle}>
-              {owner.handle}
-            </FitText>
-          </div>
-          <div
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "var(--sbag)",
-              lineHeight: 0.82,
-              background: "var(--ink)",
-              color: "var(--paper)",
-              padding: "6px 8px 4px",
-            }}
-          >
-            {"’"}S BAG
-          </div>
-        </div>
-      </section>
-      <section className={bagStyles.pane}>
-        {owner.theme && (
-          <div style={{ display: "flex", flexDirection: "column", background: "var(--ink)", color: "var(--paper)" }}>
-            <div
-              style={{
-                ...monoCaps,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 12,
-                padding: "8px 12px",
-                borderBottom: "1px solid var(--gray-400)",
-              }}
-            >
-              <span>Theme</span>
-              <span style={{ color: "var(--gray-400)" }}>Set by {owner.handle}</span>
-            </div>
-            <p style={{ margin: 0, padding: "14px 12px 16px", fontWeight: 800, fontSize: 22, lineHeight: 1.15, textWrap: "pretty" }}>{owner.theme}</p>
-          </div>
-        )}
-        <UrlForm
-          value={val}
-          onChange={change}
-          status={status}
-          message={message}
-          onSubmit={submit}
-          hint={owner.theme ? "Stick to the theme, or don’t. Bandcamp, SoundCloud or YouTube." : undefined}
-        />
-        <p style={{ margin: 0, fontWeight: 800, fontSize: 16, lineHeight: 1.2 }}>
-          {count} {count === 1 ? "track" : "tracks"} in the bag. You get one drop {"—"} make it count.
-        </p>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, borderTop: "var(--rule)", paddingTop: 16 }}>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>Just looking?</span>
-          <Button variant="outline" iconRight="→" onClick={onSkip}>
-            Skip
-          </Button>
-        </div>
-      </section>
-      {spotify && <SpotifyModal url={spotify} onClose={closeSpotify} />}
-    </main>
-  );
+
+/** A file on its way to Blob storage. */
+interface Upload {
+  file: File;
+  /** 0–100 */
+  pct: number;
+  /** Set once it's stored. */
+  url: string | null;
+  error: string | null;
 }
 
 /** The draft for a freshly read link. */
@@ -257,14 +117,66 @@ export function BagApp({
   const [dropping, setDropping] = useState(false);
   const [dropError, setDropError] = useState<string | null>(null);
   const readSeq = useRef(0);
+  // A file drop: the picked file or take, and its upload, started on the way to the details step.
+  const [picked, setPicked] = useState<PickedAudio | null>(null);
+  const [upload, setUpload] = useState<Upload | null>(null);
+  const uploadAbort = useRef<AbortController | null>(null);
 
   const showError = (message?: string) => {
     setUrlStatus(message ? "error" : "idle");
     setUrlMessage(message);
   };
 
+  const startUpload = async (audio: PickedAudio) => {
+    uploadAbort.current?.abort();
+    const ctl = new AbortController();
+    uploadAbort.current = ctl;
+    const { file } = audio;
+    // Only ever about this file: a later pick replaces the whole upload.
+    const update = (u: Partial<Upload>) => setUpload((prev) => (prev?.file === file ? { ...prev, ...u } : prev));
+    setUpload({ file, pct: 0, url: null, error: null });
+    try {
+      const blob = await uploadBlob(uploadPathname(bagId, file.name, audio.extension), file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+        clientPayload: String(bagId),
+        contentType: audio.contentType,
+        multipart: file.size > 8e6,
+        abortSignal: ctl.signal,
+        onUploadProgress: ({ percentage }) => update({ pct: percentage }),
+      });
+      update({ pct: 100, url: blob.url });
+    } catch {
+      if (!ctl.signal.aborted) update({ error: "Upload failed. Check your connection and try again." });
+    }
+  };
+
+  /** Upload or Record → the details step. The same file again (after a Back) keeps its upload. */
+  const readFile = (audio: PickedAudio) => {
+    readSeq.current++; // a link still being read no longer counts
+    setLoading(false);
+    setPicked(audio);
+    setDraft({
+      url: audio.kind === "record" ? "Recorded just now" : audio.file.name,
+      source: SOURCE_LABEL.file,
+      title: audio.title,
+      artist: audio.artist,
+      thumbnail: null,
+      duration: audio.durationSec,
+      droppedBy: lsGet(NAME_KEY) ?? "",
+      droppedFrom: "",
+      lat: null,
+      lng: null,
+    });
+    setDropError(null);
+    if (upload?.file !== audio.file || upload.error) void startUpload(audio);
+    setView("preview");
+    window.scrollTo(0, 0);
+  };
+
   const readUrl = async (url: string) => {
     const seq = ++readSeq.current;
+    setPicked(null);
     const provider = detectProvider(url)!;
     const name = lsGet(NAME_KEY) ?? "";
     setDraft({ url, source: SOURCE_LABEL[provider], title: "", artist: "", thumbnail: null, duration: null, droppedBy: name, droppedFrom: "", lat: null, lng: null });
@@ -296,7 +208,7 @@ export function BagApp({
   };
 
   const drop = async () => {
-    if (!draft) return;
+    if (!draft || (picked && !upload?.url)) return;
     setDropping(true);
     setDropError(null);
     try {
@@ -306,8 +218,7 @@ export function BagApp({
         body: JSON.stringify({
           bagId,
           uid: ensureUid(cookieUid),
-          url: draft.url,
-          trackId: draft.trackId,
+          ...(picked ? { fileUrl: upload?.url, durationSec: draft.duration } : { url: draft.url, trackId: draft.trackId }),
           title: draft.title,
           artist: draft.artist,
           droppedBy: draft.droppedBy,
@@ -374,19 +285,25 @@ export function BagApp({
   }
 
   const intoBag = `Dropping into ${owner.handle}’s bag`;
+  const uploading = picked && upload && !upload.url && !upload.error ? `Uploading… ${Math.round(upload.pct)}%` : null;
+  const uploadFailed = picked && upload?.error ? upload.error : null;
   return (
     <div className={bagStyles.shell}>
       <div style={{ flex: 1 }}>
-        {shown === "landing" && (
-          <DropForm
-            owner={owner}
-            count={tracks.length}
-            status={urlStatus}
-            message={urlMessage}
-            onSubmitUrl={readUrl}
-            onSkip={() => setView("bag")}
-            onError={showError}
-          />
+        {/* Kept mounted under the details step, so Back finds the link, file or take still there. */}
+        {(shown === "landing" || shown === "preview") && (
+          <div hidden={shown !== "landing"}>
+            <DropForm
+              owner={owner}
+              count={tracks.length}
+              status={urlStatus}
+              message={urlMessage}
+              onSubmitUrl={readUrl}
+              onSubmitFile={readFile}
+              onSkip={() => setView("bag")}
+              onError={showError}
+            />
+          </div>
         )}
         {shown === "preview" && (
           <main className={bagStyles.split}>
@@ -429,9 +346,19 @@ export function BagApp({
                 draft={draft}
                 loading={loading}
                 dropping={dropping}
-                error={dropError}
+                error={dropError ?? uploadFailed}
+                pendingLabel={uploading}
+                dropLabel={uploadFailed ? "Retry upload" : undefined}
+                backLabel={picked ? (picked.kind === "record" ? "Back to recording" : "Change file") : undefined}
+                fieldsNote={
+                  picked
+                    ? picked.kind === "record"
+                      ? "Give your recording a name. Artist’s optional."
+                      : "From the file name. Fix it if it’s wrong."
+                    : undefined
+                }
                 onChange={(update) => setDraft((d) => d && update(d))}
-                onDrop={drop}
+                onDrop={uploadFailed && picked ? () => void startUpload(picked) : drop}
                 onBack={() => {
                   readSeq.current++;
                   setLoading(false);

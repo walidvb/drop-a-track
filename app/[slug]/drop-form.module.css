@@ -1,0 +1,35 @@
+/* The drop form's controls (see DropForm). As in the design: hover inverts to
+   ink, a press flashes magenta. */
+.tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: var(--rule) }
+.tab {
+  height: 48px; border: 0; border-right: var(--rule); background: var(--paper); color: var(--ink);
+  font-family: var(--font-display); font-size: 14px; letter-spacing: 0.02em; text-transform: uppercase; cursor: pointer;
+  transition: background 120ms var(--ease-snap), color 120ms var(--ease-snap);
+}
+.tab:last-child { border-right: 0 }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--paper) }
+
+/* "Choose a file", and "Replace file" under a picked one. The input inside stays focusable. */
+.pick {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 20px 16px;
+  border: var(--rule); cursor: pointer; transition: background 120ms var(--ease-snap), color 120ms var(--ease-snap);
+}
+.replace {
+  position: relative; display: flex; align-items: center; justify-content: center; height: 44px; border-top: 1px solid var(--ink);
+  font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; letter-spacing: var(--tracking-caps); cursor: pointer;
+}
+.pick:focus-within, .replace:focus-within { outline: 2px solid var(--magenta); outline-offset: 2px }
+.fileInput { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none }
+
+/* Record, Stop, Play, Redo: the record panel's full-width buttons. */
+.big {
+  flex: 1; height: 64px; border: 0; display: flex; align-items: center; justify-content: center; gap: 10px;
+  font-family: var(--font-display); font-size: 18px; text-transform: uppercase; cursor: pointer;
+  background: var(--paper); color: var(--ink);
+}
+.big + .big { border-left: var(--rule) }
+.record { background: var(--ink); color: var(--paper) }
+.stop { background: var(--magenta); color: var(--ink) }
+
+.pick:hover, .replace:hover, .big:hover:not(.record, .stop) { background: var(--ink); color: var(--paper) }
+.tab:active, .pick:active, .record:active { background: var(--magenta); color: var(--ink) }

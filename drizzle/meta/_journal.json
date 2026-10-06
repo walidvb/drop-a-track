@@ -15,6 +15,13 @@
       "when": 1790813538968,
       "tag": "0001_bag_theme",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791268219487,
+      "tag": "0002_file_provider",
+      "breakpoints": true
     }
   ]
 }

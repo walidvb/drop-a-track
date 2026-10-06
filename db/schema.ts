@@ -17,7 +17,7 @@ import type { Provider } from "@cucu/media/core";
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 
 // Listed here rather than imported so drizzle-kit can load this file without the workspace package.
-const PROVIDER_VALUES = ["youtube", "soundcloud", "bandcamp"] as const satisfies readonly Provider[];
+const PROVIDER_VALUES = ["youtube", "soundcloud", "bandcamp", "file"] as const satisfies readonly Provider[];
 export const provider = pgEnum("provider", PROVIDER_VALUES);
 
 /** One printed QR code = one shirt. The token is only ever in the QR; the handle is public. */
@@ -58,7 +58,7 @@ export const drops = pgTable(
       .notNull()
       .references(() => bags.id, { onDelete: "cascade" }),
     dropperUid: text("dropper_uid").notNull(),
-    /** Canonical URL of the pasted link (a Bandcamp album stays the album URL). */
+    /** Canonical URL of the pasted link (a Bandcamp album stays the album URL), or the uploaded file's Blob URL. */
     url: text("url").notNull(),
     provider: provider("provider").notNull(),
     /** Bandcamp: which track of the release. */

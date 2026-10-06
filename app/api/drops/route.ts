@@ -1,3 +1,4 @@
+import type { Provider } from "@cucu/media/core";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
@@ -6,14 +7,76 @@ import { countDrops, findDropBy } from "@/lib/bags";
 import { READ_ERRORS, readLink } from "@/lib/read-link";
 import { ticketCookieName, verifyTicket } from "@/lib/ticket";
 import { UID_COOKIE, UID_MAX_AGE, isUid } from "@/lib/uid";
+import { findUpload } from "@/lib/upload";
 
 const text = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 const coord = (v: unknown, limit: number) => (typeof v === "number" && Number.isFinite(v) && Math.abs(v) <= limit ? v : null);
 
+/** What a drop plays and shows. Title and artist are suggestions the dropper's own override. */
+interface Source {
+  url: string;
+  provider: Provider;
+  providerTrackId: string | null;
+  streamUrl: string | null;
+  streamRefreshedAt: Date | null;
+  title: string;
+  artist: string;
+  artworkUrl: string | null;
+  durationSec: number | null;
+}
+type Refusal = { error: string; status: number };
+
+/** A pasted link, re-read server-side (from cache). */
+async function fromLink(body: Record<string, unknown>): Promise<Source | Refusal> {
+  const read = await readLink(text(body.url, 1000));
+  if (read.kind !== "ok") {
+    const { status, message } = READ_ERRORS[read.kind];
+    return { error: message, status };
+  }
+  const { info } = read;
+
+  let track: { trackId: string; title: string; streamUrl: string; durationSec: number | null } | null = null;
+  if (info.provider === "bandcamp") {
+    const chosen = info.bandcamp?.tracks.find((t) => t.trackId === body.trackId && t.streamUrl);
+    if (!chosen?.streamUrl) return { error: "Pick a track that can be streamed.", status: 422 };
+    track = { ...chosen, streamUrl: chosen.streamUrl };
+  }
+  return {
+    url: info.url,
+    provider: info.provider,
+    providerTrackId: track?.trackId ?? null,
+    streamUrl: track?.streamUrl ?? null,
+    streamRefreshedAt: track ? (read.fetchedAt ?? new Date()) : null,
+    title: track?.title || info.title,
+    artist: info.artist,
+    artworkUrl: info.artworkUrl,
+    durationSec: track ? track.durationSec : info.durationSec,
+  };
+}
+
+/** An uploaded or recorded file, already in Blob storage. Its length is the browser's word: display only. */
+async function fromUpload(body: Record<string, unknown>, bagId: number): Promise<Source | Refusal> {
+  const file = await findUpload(text(body.fileUrl, 1000), bagId);
+  if (!file) return { error: "That upload didn’t go through. Try again.", status: 422 };
+  const d = body.durationSec;
+  return {
+    url: file.url,
+    provider: "file",
+    providerTrackId: null,
+    streamUrl: null,
+    streamRefreshedAt: null,
+    title: "",
+    artist: "",
+    artworkUrl: null,
+    durationSec: typeof d === "number" && Number.isFinite(d) && d > 0 ? Math.min(d, 24 * 3600) : null,
+  };
+}
+
 /**
- * DROP! One per browser per bag, only with a scan ticket. The link is re-read
- * server-side (from cache) so provider, artwork and stream never come from the
- * client; only title and artist — which the dropper may correct — do.
+ * DROP! One per browser per bag, only with a scan ticket. A link is re-read
+ * server-side and an upload is looked up in Blob storage, so provider,
+ * artwork and stream never come from the client; only title and artist —
+ * which the dropper may correct — do.
  */
 export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
@@ -36,22 +99,12 @@ export async function POST(request: NextRequest) {
   const droppedFrom = text(body.droppedFrom, 120);
   if (!droppedBy || !droppedFrom) return Response.json({ error: "Tell us who's dropping, and from where." }, { status: 422 });
 
-  const read = await readLink(text(body.url, 1000));
-  if (read.kind !== "ok") {
-    const { status, message } = READ_ERRORS[read.kind];
-    return Response.json({ error: message }, { status });
-  }
-  const { info } = read;
+  const source = body.fileUrl ? await fromUpload(body, bagId) : await fromLink(body);
+  if ("error" in source) return Response.json({ error: source.error }, { status: source.status });
 
-  let track: { trackId: string; title: string; streamUrl: string; durationSec: number | null } | null = null;
-  if (info.provider === "bandcamp") {
-    const chosen = info.bandcamp?.tracks.find((t) => t.trackId === body.trackId && t.streamUrl);
-    if (!chosen?.streamUrl) return Response.json({ error: "Pick a track that can be streamed." }, { status: 422 });
-    track = { ...chosen, streamUrl: chosen.streamUrl };
-  }
-
-  const title = text(body.title, 200) || track?.title || info.title;
+  const title = text(body.title, 200) || source.title;
   if (!title) return Response.json({ error: "Give it a title." }, { status: 422 });
+  const artist = text(body.artist, 200) || source.artist;
   const hasCoords = coord(body.lat, 90) !== null && coord(body.lng, 180) !== null;
 
   // Record the localStorage uid when there is one, and mirror it into the cookie below: once the
@@ -62,15 +115,15 @@ export async function POST(request: NextRequest) {
     .values({
       bagId,
       dropperUid: uid,
-      url: info.url,
-      provider: info.provider,
-      providerTrackId: track?.trackId ?? null,
-      streamUrl: track?.streamUrl ?? null,
-      streamRefreshedAt: track ? (read.fetchedAt ?? new Date()) : null,
+      url: source.url,
+      provider: source.provider,
+      providerTrackId: source.providerTrackId,
+      streamUrl: source.streamUrl,
+      streamRefreshedAt: source.streamRefreshedAt,
       title,
-      artist: text(body.artist, 200) || info.artist,
-      artworkUrl: info.artworkUrl,
-      durationSec: track ? track.durationSec : info.durationSec,
+      artist,
+      artworkUrl: source.artworkUrl,
+      durationSec: source.durationSec,
       droppedBy,
       droppedFrom,
       lat: hasCoords ? coord(body.lat, 90) : null,
@@ -86,14 +139,14 @@ export async function POST(request: NextRequest) {
     {
       drop: {
         id: created.id,
-        url: info.url,
-        provider: info.provider,
-        providerTrackId: track?.trackId ?? null,
+        url: source.url,
+        provider: source.provider,
+        providerTrackId: source.providerTrackId,
         streamUrl: created.streamUrl,
         title,
-        artist: text(body.artist, 200) || info.artist,
-        artworkUrl: info.artworkUrl,
-        durationSec: track ? track.durationSec : info.durationSec,
+        artist,
+        artworkUrl: source.artworkUrl,
+        durationSec: source.durationSec,
         droppedBy,
         droppedFrom,
       },

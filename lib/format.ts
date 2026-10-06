@@ -4,12 +4,13 @@ export const SOURCE_LABEL: Record<Provider, string> = {
   youtube: "YouTube",
   soundcloud: "SoundCloud",
   bandcamp: "Bandcamp",
+  file: "Upload",
 };
 
 /** The short code shown on rows and placeholder covers ("BC"), from a provider's display name. */
-const SOURCE_CODE: Record<Provider, string> = { youtube: "YT", soundcloud: "SC", bandcamp: "BC" };
+const SOURCE_CODE: Record<string, string> = { youtube: "YT", soundcloud: "SC", bandcamp: "BC", upload: "UP" };
 export const sourceCode = (source?: string | null) =>
-  SOURCE_CODE[(source ?? "").toLowerCase().replace(/[^a-z]/g, "") as Provider] ?? (source ? source.slice(0, 2).toUpperCase() : "--");
+  SOURCE_CODE[(source ?? "").toLowerCase().replace(/[^a-z]/g, "")] ?? (source ? source.slice(0, 2).toUpperCase() : "--");
 
 export const padNumber = (n: number) => String(n).padStart(3, "0");
 

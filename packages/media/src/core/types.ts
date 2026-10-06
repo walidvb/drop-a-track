@@ -30,7 +30,7 @@ export interface MediaInfo {
 /** Everything the player needs to play one item. */
 export interface MediaRef {
   provider: Provider;
-  /** The page URL (YouTube/SoundCloud play this directly). */
+  /** The page URL (YouTube/SoundCloud play this directly), or the audio file's. */
   url: string;
   /** Bandcamp only: the release's track id, used to mint a fresh stream when this one dies. */
   providerTrackId?: string | null;

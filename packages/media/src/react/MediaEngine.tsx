@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Headless player for YouTube, SoundCloud and Bandcamp items: renders an
+ * Headless player for YouTube, SoundCloud, Bandcamp and audio-file items: renders an
  * invisible react-player and reports progress. Bring your own controls.
  *
  * Pinned to react-player v2 — v3 dropped SoundCloud. Behaviour ported from

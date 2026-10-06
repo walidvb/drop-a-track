@@ -1,8 +1,8 @@
-/** Public handles: shown as "mira.k" (never "@mira.k") and used in /mira.k. Set once, never changed. */
+/** Public handles: shown as "mira.k" (never "@mira.k") and used in /mira.k. Set at handover; the owner can rename it from /manage. */
 export const HANDLE_PATTERN = /^[a-z0-9._-]{2,30}$/;
 
 /** Paths the app itself owns: a bag there could never be reached. */
-const RESERVED = new Set(["admin", "api", "closed", "s", "favicon.ico"]);
+const RESERVED = new Set(["admin", "api", "closed", "manage", "s", "favicon.ico"]);
 
 /** A handle as typed: case-insensitive, a stray leading "@" forgiven. */
 export function parseHandle(raw: string): string | null {

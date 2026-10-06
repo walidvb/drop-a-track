@@ -12,6 +12,7 @@ describe("handles", () => {
   it("refuse the app's own paths", () => {
     expect(parseHandle("admin")).toBeNull();
     expect(parseHandle("S")).toBeNull();
+    expect(parseHandle("manage")).toBeNull();
   });
 
   it("read slugs, old @ links and encodings included", () => {

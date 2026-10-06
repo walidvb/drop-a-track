@@ -8,7 +8,8 @@ import { UID_COOKIE, UID_MAX_AGE, isUid, newUid } from "@/lib/uid";
 /**
  * What a QR code points at. Hands out a scan ticket for the shirt's current
  * bag and redirects straight away, so the address bar never shows a URL that
- * lets someone else drop.
+ * lets someone else drop. Until the owner sets a password, the scan offers that
+ * first (with a way on to the drop for everyone else).
  */
 export async function GET(request: NextRequest, ctx: RouteContext<"/s/[token]">) {
   const { token: raw } = await ctx.params;
@@ -18,7 +19,8 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/s/[token]">)
   if (!target) return redirect(new URL("/", request.url));
   if (!target.handle || !target.bagId) return redirect(new URL(`/closed?n=${target.number}`, request.url));
 
-  const res = redirect(new URL(bagPath(target.handle), request.url));
+  const to = target.claimed ? bagPath(target.handle) : `/manage/setup?n=${target.number}`;
+  const res = redirect(new URL(to, request.url));
   const secure = request.nextUrl.protocol === "https:";
   res.cookies.set(ticketCookieName(target.bagId), await issueTicket(target.bagId), {
     httpOnly: true,

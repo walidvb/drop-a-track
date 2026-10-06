@@ -11,6 +11,8 @@ export async function listQrCodes() {
       number: qrCodes.number,
       token: qrCodes.token,
       handle: qrCodes.handle,
+      /** Whether the owner set a /manage password. */
+      claimed: sql<boolean>`${qrCodes.passwordHash} is not null`,
       bagId: qrCodes.currentBagId,
       theme: bags.theme,
       drops: count(drops.id),
@@ -60,7 +62,7 @@ export async function createQrCode(): Promise<void> {
   }
 }
 
-/** Handles are set once, at handover, and never change. */
+/** Handles are set here once, at handover. After that only the owner renames it, from /manage. */
 export async function assignHandle(qrCodeId: number, handle: string): Promise<"ok" | "taken" | "already-set"> {
   try {
     const updated = await db
@@ -74,6 +76,11 @@ export async function assignHandle(qrCodeId: number, handle: string): Promise<"o
     if ((error as { cause?: { code?: string } }).cause?.code === "23505") return "taken";
     throw error;
   }
+}
+
+/** Forgotten, or set by the wrong person: the next scan sets a new one, and old sessions end. */
+export async function resetOwnerPassword(qrCodeId: number) {
+  await db.update(qrCodes).set({ passwordHash: null }).where(eq(qrCodes.id, qrCodeId));
 }
 
 export async function deleteDrop(dropId: number) {

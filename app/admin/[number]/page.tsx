@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { listDrops, listQrCodes, THEME_MAX } from "@/lib/admin";
 import { padNumber } from "@/lib/format";
-import { deleteDropAction, setThemeAction } from "../actions";
+import { deleteDropAction, resetPasswordAction, setThemeAction } from "../actions";
 import { adminStyles as s } from "../styles";
 
 /** One shirt's current bag, with everything we store — coordinates included. */
@@ -19,6 +19,16 @@ export default async function AdminBagPage({ params }: PageProps<"/admin/[number
       <h1 style={s.h1}>
         #{padNumber(number)} {code.handle ? code.handle : ""}
       </h1>
+      {code.handle && (
+        <form action={resetPasswordAction} style={s.row}>
+          <input type="hidden" name="id" value={code.id} />
+          <input type="hidden" name="number" value={number} />
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>
+            {code.claimed ? "Owner password set: they manage the bag at /manage." : "No owner password yet: the next scan offers to set one."}
+          </span>
+          {code.claimed && <button style={s.button}>Reset password</button>}
+        </form>
+      )}
       {code.bagId && (
         <form action={setThemeAction} style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: 640 }}>
           <label htmlFor="theme" style={{ fontFamily: "var(--font-mono)", fontSize: 11, textTransform: "uppercase" }}>

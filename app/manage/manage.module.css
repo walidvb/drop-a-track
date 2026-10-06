@@ -1,0 +1,16 @@
+/* /manage: one phone column, like /closed. */
+.shell { max-width: 430px; min-height: 100vh; margin: 0 auto; background: var(--paper); padding: 20px 16px 32px; display: flex; flex-direction: column; gap: 24px }
+.form { display: flex; flex-direction: column; gap: 16px }
+.field { display: flex; flex-direction: column; gap: 6px }
+.input {
+  height: var(--control-h); padding: 0 12px; width: 100%; min-width: 0;
+  border: var(--border-w) solid var(--ink); border-radius: 0; outline: 0;
+  background: var(--paper); color: var(--ink); font-weight: 700; font-size: 16px;
+}
+.input:focus { border-color: var(--magenta) }
+.link {
+  display: inline-flex; align-items: center; gap: 10px; height: var(--control-h); padding: 0 20px;
+  border: var(--border-w) solid var(--ink); color: var(--ink); text-decoration: none; white-space: nowrap;
+  font-family: var(--font-heavy); font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.link:hover { background: var(--ink); color: var(--paper) }

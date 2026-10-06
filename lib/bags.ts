@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import type { MediaRef } from "@cucu/media/core";
 import type { TrackView } from "@/components/ds/types";
 import { resolveBandcampStream } from "@cucu/media/server";
@@ -34,10 +34,15 @@ export async function getBagByHandle(handle: string): Promise<BagOwner | null> {
   return row && row.handle ? { ...row, handle: row.handle } : null;
 }
 
-/** What a scan resolves to: the shirt, and its current bag if it's open. */
+/** What a scan resolves to: the shirt, its current bag if it's open, and whether its owner set a password yet. */
 export async function getScanTarget(token: string) {
   const [row] = await db
-    .select({ number: qrCodes.number, handle: qrCodes.handle, bagId: qrCodes.currentBagId })
+    .select({
+      number: qrCodes.number,
+      handle: qrCodes.handle,
+      bagId: qrCodes.currentBagId,
+      claimed: sql<boolean>`${qrCodes.passwordHash} is not null`,
+    })
     .from(qrCodes)
     .where(eq(qrCodes.token, token))
     .limit(1);

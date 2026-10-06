@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { assignHandle, createQrCode, deleteDrop, setBagTheme } from "@/lib/admin";
+import { assignHandle, createQrCode, deleteDrop, resetOwnerPassword, setBagTheme } from "@/lib/admin";
 import { isAdminAuthorization } from "@/lib/admin-auth";
 import { parseHandle } from "@/lib/handle";
 
@@ -24,7 +24,7 @@ export async function createQrCodesAction(formData: FormData) {
 export async function assignHandleAction(formData: FormData) {
   await assertAdmin();
   const handle = parseHandle(String(formData.get("handle") ?? ""));
-  if (!handle) return back("/admin", "Handles are 2–30 characters: a–z, 0–9, dot, dash, underscore — and not admin, api, closed or s.");
+  if (!handle) return back("/admin", "Handles are 2–30 characters: a–z, 0–9, dot, dash, underscore — and not admin, api, closed, manage or s.");
   const result = await assignHandle(Number(formData.get("id")), handle);
   if (result === "taken") return back("/admin", `${handle} is taken.`);
   if (result === "already-set") return back("/admin", "That shirt already has a handle.");
@@ -40,5 +40,11 @@ export async function deleteDropAction(formData: FormData) {
 export async function setThemeAction(formData: FormData) {
   await assertAdmin();
   await setBagTheme(Number(formData.get("bagId")), String(formData.get("theme") ?? ""));
+  back(`/admin/${Number(formData.get("number"))}`);
+}
+
+export async function resetPasswordAction(formData: FormData) {
+  await assertAdmin();
+  await resetOwnerPassword(Number(formData.get("id")));
   back(`/admin/${Number(formData.get("number"))}`);
 }

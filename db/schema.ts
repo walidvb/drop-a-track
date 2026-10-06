@@ -27,8 +27,10 @@ export const qrCodes = pgTable("qr_codes", {
   token: char("token", { length: 6 }).notNull().unique(),
   /** Shirt number, shown as #014 and printable next to the QR. */
   number: integer("number").notNull().unique(),
-  /** The wearer's handle, set at handover. Null = shirt not open yet. Never changes once set. */
+  /** The wearer's handle, set at handover. Null = shirt not open yet. The owner can rename it from /manage. */
   handle: text("handle").unique(),
+  /** The owner's /manage password, set on the first scan (lib/owner-auth.ts). Null = nobody claimed the shirt yet. */
+  passwordHash: text("password_hash"),
   currentBagId: integer("current_bag_id").references((): AnyPgColumn => bags.id),
   createdAt: createdAt(),
 });

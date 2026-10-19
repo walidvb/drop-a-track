@@ -1,0 +1,11 @@
+/* The app's font variables (app/fonts.ts), pointed at the faces theme.ts loads. */
+:root {
+  --ff-shapiro: "Shapiro Super";
+  --ff-shapiro-wide: "Shapiro Super Wide";
+  --ff-shapiro-extd: "Shapiro Super Extd";
+  --ff-shapiro-heavy: "Shapiro Super Heavy";
+  --ff-archivo: "Archivo";
+  --ff-plex-mono: "IBM Plex Mono";
+}
+* { box-sizing: border-box }
+body { margin: 0; -webkit-font-smoothing: antialiased }

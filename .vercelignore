@@ -6,3 +6,5 @@
 assets/
 # Local tooling and agent worktrees.
 .claude/
+# The promo video: its own Remotion project, rendered locally.
+video/

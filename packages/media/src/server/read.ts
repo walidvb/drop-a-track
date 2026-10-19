@@ -1,4 +1,4 @@
-import { detectProvider, normalizeUrl } from "../core/providers";
+import { detectProvider, normalizeUrl, parseUrl } from "../core/providers";
 import type { MediaInfo } from "../core/types";
 import { fetchRelease, type FetchOptions } from "./bandcamp";
 import { lookupOembed } from "./oembed";
@@ -8,15 +8,42 @@ export type ReadOutcome =
   | { kind: "unsupported" } // not a YouTube / SoundCloud / Bandcamp track link
   | { kind: "not-found" } // Bandcamp release pulled (404/410)
   | { kind: "unplayable" } // Bandcamp release with nothing publicly streamable
-  | { kind: "unavailable" } // Bandcamp didn't answer usefully — try again later
+  | { kind: "unavailable" } // Bandcamp or a short link didn't answer usefully — try again later
   | { kind: "busy" }; // the throttle said no
+
+/** What the SoundCloud app shares. The player can't load these; the track page they redirect to it can. */
+const SHORT_HOSTS = new Set(["on.soundcloud.com"]);
+
+const isShortLink = (url: string) => SHORT_HOSTS.has(parseUrl(url)?.hostname.toLowerCase() ?? "");
+
+/**
+ * A short link's canonical target; any other link as is. Null when the short
+ * link doesn't redirect to a supported link (dead, or SoundCloud didn't answer).
+ */
+export async function expandShortLink(raw: string, options: { fetch?: typeof fetch } = {}): Promise<string | null> {
+  if (!isShortLink(raw)) return raw;
+  const short = parseUrl(raw)!;
+  const doFetch = options.fetch ?? fetch;
+  try {
+    const res = await doFetch(short, { method: "HEAD", redirect: "manual", signal: AbortSignal.timeout(6000) });
+    const location = res.headers.get("location");
+    const target = location ? normalizeUrl(new URL(location, short).toString()) : null;
+    return target && !isShortLink(target) ? target : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * What a pasted link is. YouTube/SoundCloud always succeed (a failed oEmbed
  * lookup just leaves the text fields empty for the user to fill); Bandcamp
  * needs its page, because the stream lives there.
  */
-export async function readMedia(raw: string, options: FetchOptions = {}): Promise<ReadOutcome> {
+export async function readMedia(pasted: string, options: FetchOptions = {}): Promise<ReadOutcome> {
+  if (!detectProvider(pasted)) return { kind: "unsupported" };
+  const raw = await expandShortLink(pasted, options);
+  if (!raw) return { kind: "unavailable" };
+
   const provider = detectProvider(raw);
   const url = normalizeUrl(raw);
   if (!provider || !url) return { kind: "unsupported" };

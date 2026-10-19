@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { normalizeUrl, type MediaInfo } from "@cucu/media/core";
-import { readMedia, type ReadOutcome } from "@cucu/media/server";
+import { expandShortLink, readMedia, type ReadOutcome } from "@cucu/media/server";
 import { db } from "@/db";
 import { mediaCache } from "@/db/schema";
 import { bandcampThrottle } from "./throttle";
@@ -15,7 +15,10 @@ export interface CachedRead {
 
 /** `readMedia`, behind the cache and the shared Bandcamp throttle. */
 export async function readLink(raw: string): Promise<ReadOutcome & { fetchedAt?: Date }> {
-  const url = normalizeUrl(raw);
+  // Expanded first, so a SoundCloud app share and the track page share one cache row.
+  const expanded = await expandShortLink(raw);
+  if (!expanded) return { kind: "unavailable" };
+  const url = normalizeUrl(expanded);
   if (!url) return { kind: "unsupported" };
 
   const [cached] = await db.select().from(mediaCache).where(eq(mediaCache.url, url)).limit(1);
@@ -42,6 +45,6 @@ export const READ_ERRORS: Record<Exclude<ReadOutcome["kind"], "ok">, { status: n
   unsupported: { status: 422, message: "Bandcamp, SoundCloud or YouTube links only." },
   "not-found": { status: 404, message: "That release is gone." },
   unplayable: { status: 422, message: "Nothing on that release can be streamed. Pick another." },
-  unavailable: { status: 503, message: "Couldn’t read that Bandcamp link. Try again in a moment." },
+  unavailable: { status: 503, message: "Couldn’t read that link. Try again in a moment." },
   busy: { status: 503, message: "Couldn’t read that Bandcamp link. Try again in a moment." },
 };

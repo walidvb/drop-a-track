@@ -9,5 +9,5 @@ export {
 export type { FetchOptions, Release, ReleaseOutcome, StreamOutcome } from "./bandcamp";
 export { lookupOembed, splitOembed } from "./oembed";
 export type { OembedMetadata } from "./oembed";
-export { readMedia } from "./read";
+export { expandShortLink, readMedia } from "./read";
 export type { ReadOutcome } from "./read";

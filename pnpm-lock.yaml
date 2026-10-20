@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@cucu/media':
-        specifier: workspace:*
-        version: link:packages/media
+        specifier: github:walidvb/diggers-utils#v0.1.0
+        version: https://codeload.github.com/walidvb/diggers-utils/tar.gz/41bbecd05075d78340daea5c4dde690477a1eb7f(react-dom@19.2.8(react@19.2.8))(react-player@2.16.1(react@19.2.8))(react@19.2.8)
       '@lglab/react-qr-code':
         specifier: ^1.7.3
         version: 1.7.3(react@19.2.8)
@@ -35,6 +35,9 @@ importers:
       react-dom:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
+      react-player:
+        specifier: 2.16.1
+        version: 2.16.1(react@19.2.8)
     devDependencies:
       '@testing-library/dom':
         specifier: ^10.4.2
@@ -78,18 +81,6 @@ importers:
       vitest:
         specifier: ^5.0.2
         version: 5.0.2(@types/node@22.20.4)(jsdom@30.1.1)(vite@8.3.1(@types/node@22.20.4)(esbuild@0.28.2)(tsx@4.23.15))
-
-  packages/media:
-    dependencies:
-      react:
-        specifier: ^18 || ^19
-        version: 19.2.8
-      react-dom:
-        specifier: ^18 || ^19
-        version: 19.2.8(react@19.2.8)
-      react-player:
-        specifier: 2.16.1
-        version: 2.16.1(react@19.2.8)
 
 packages:
 
@@ -211,6 +202,14 @@ packages:
   '@csstools/css-tokenizer@4.0.2':
     resolution: {integrity: sha512-OoKoR0f76dCY666JlcbhmVTs2drYj1GUXZTYTcbUgJjh9Nv41aFfZ21bPQTERm5+L5cBDo466NltB2lplS5GBw==}
     engines: {node: '>=20.19.0'}
+
+  '@cucu/media@https://codeload.github.com/walidvb/diggers-utils/tar.gz/41bbecd05075d78340daea5c4dde690477a1eb7f':
+    resolution: {tarball: https://codeload.github.com/walidvb/diggers-utils/tar.gz/41bbecd05075d78340daea5c4dde690477a1eb7f}
+    version: 0.1.0
+    peerDependencies:
+      react: ^18 || ^19
+      react-dom: ^18 || ^19
+      react-player: ^2.16.1
 
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
@@ -3257,6 +3256,12 @@ snapshots:
 
   '@csstools/css-tokenizer@4.0.2': {}
 
+  '@cucu/media@https://codeload.github.com/walidvb/diggers-utils/tar.gz/41bbecd05075d78340daea5c4dde690477a1eb7f(react-dom@19.2.8(react@19.2.8))(react-player@2.16.1(react@19.2.8))(react@19.2.8)':
+    dependencies:
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+      react-player: 2.16.1(react@19.2.8)
+
   '@drizzle-team/brocli@0.10.2': {}
 
   '@emnapi/core@1.10.0':
@@ -4570,7 +4575,7 @@ snapshots:
       eslint: 9.39.5
       eslint-import-resolver-node: 0.3.10
       eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5)(typescript@5.9.3))(eslint@9.39.5))(eslint@9.39.5)
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5)
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5)(typescript@5.9.3))(eslint@9.39.5))(eslint@9.39.5))(eslint@9.39.5)
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.39.5)
       eslint-plugin-react: 7.37.5(eslint@9.39.5)
       eslint-plugin-react-hooks: 7.1.1(eslint@9.39.5)
@@ -4603,7 +4608,7 @@ snapshots:
       tinyglobby: 0.2.17
       unrs-resolver: 1.12.2
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5)
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5)(typescript@5.9.3))(eslint@9.39.5))(eslint@9.39.5))(eslint@9.39.5)
     transitivePeerDependencies:
       - supports-color
 
@@ -4618,7 +4623,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5):
+  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5)(typescript@5.9.3))(eslint@9.39.5))(eslint@9.39.5))(eslint@9.39.5):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.2.0

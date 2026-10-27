@@ -257,10 +257,8 @@ export function Browse({
                   axis="w"
                   max={96}
                   style={{
-                    display: "inline-block",
                     whiteSpace: "nowrap",
                     fontFamily: "var(--font-display)",
-                    lineHeight: 0.82,
                     letterSpacing: "-0.02em",
                     textTransform: "uppercase",
                   }}

@@ -129,7 +129,8 @@ export function Poster({
           </div>
         </section>
       </div>
-      <div style={{ minWidth: 0 }}>
+      {/* Bleeds through the column's padding so DROP A kisses the left and bottom edges and TRACK. */}
+      <div style={{ minWidth: 0, marginInline: "calc(-1 * clamp(16px,3vw,32px))", marginBottom: "calc(-1 * clamp(16px,3vw,28px))" }}>
         <FitText
           axis="w"
           max={260}
@@ -138,31 +139,27 @@ export function Poster({
             ["--d" as string]: "0ms",
             ["--from" as string]: "0 10px", // up
             fontFamily: "var(--font-display)",
-            lineHeight: 0.8,
             letterSpacing: "-0.02em",
             whiteSpace: "nowrap",
-            display: "inline-block",
-            marginBottom: "-0.06em",
           }}
         >
           DROP A
         </FitText>
       </div>
     </div>
-    <div style={{ position: "relative", height: "100%", display: "flex", alignItems: "flex-end" }}>
+    {/* The column turns, not the word: FitText's trims are uneven (cap side vs baseline), so
+        rotating the word itself would turn it about the wrong centre and shift it off the edges. */}
+    <div style={{ position: "relative", height: "100%", display: "flex", alignItems: "flex-end", transform: "rotate(180deg)" }}>
       <FitText
         axis="h"
         max={400}
         className={styles.enter}
         style={{
           ["--d" as string]: "140ms",
-          ["--from" as string]: "10px 0", // right to left: "up" for the rotated word
+          ["--from" as string]: "-10px 0", // inside the turned column: right to left on screen, "up" for the word
           writingMode: "vertical-rl",
-          transform: "rotate(180deg)",
           fontFamily: "var(--font-display)",
-          lineHeight: 0.8,
           whiteSpace: "nowrap",
-          marginLeft: "-0.04em",
         }}
       >
         TRACK

@@ -23,7 +23,8 @@ export function FitText({
   children,
 }: {
   axis?: "h" | "w";
-  max: number;
+  /** Leave out for no cap. */
+  max?: number;
   min?: number;
   className?: string;
   style?: CSSProperties;
@@ -36,7 +37,7 @@ export function FitText({
     if (!el || !box) return;
     const fit = () => {
       const cs = getComputedStyle(el);
-      const cap = parseFloat(cs.getPropertyValue("--fit-max")) || max;
+      const cap = parseFloat(cs.getPropertyValue("--fit-max")) || max || Infinity;
       // Measure at a fixed size first: the text may be what sizes its box (TRACK's column).
       el.style.fontSize = "100px";
       const b = getComputedStyle(box);

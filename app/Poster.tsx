@@ -133,7 +133,6 @@ export function Poster({
       <div style={{ minWidth: 0, marginInline: "calc(-1 * clamp(16px,3vw,32px))", marginBottom: "calc(-1 * clamp(16px,3vw,28px))" }}>
         <FitText
           axis="w"
-          max={260}
           className={styles.enter}
           style={{
             ["--d" as string]: "0ms",

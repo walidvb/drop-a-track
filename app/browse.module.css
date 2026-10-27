@@ -23,7 +23,7 @@
 
 /* Get your own · See past bags: two halves of one bar, across the column's padding on phones. */
 .ways {
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-inline: calc(-1 * var(--pad-x)); border-block: var(--border-w) solid var(--ink);
 }
 @media (min-width: 1000px) {
@@ -41,9 +41,9 @@
 .wayPrimary:hover { background: var(--magenta); color: var(--ink) }
 @media (min-width: 1000px) { .way { min-height: 88px; padding: 12px 14px; font-size: 16px } }
 
-/* Drops waiting (phones only): a sticker slapped on the poster, over TRACK. */
+/* Drops waiting (phones only): hangs off the bar's bottom right corner, over TRACK. */
 .sticker {
-  position: absolute; z-index: 1; top: 168px; right: 8px; width: 112px; height: 112px;
+  position: absolute; z-index: 1; top: calc(100% + 16px); left: calc(100% - 16px); width: 112px; height: 112px;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
   border: 3px solid var(--ink); border-radius: 50%; background: var(--magenta); color: var(--ink);
   rotate: -12deg; text-align: center; text-decoration: none;

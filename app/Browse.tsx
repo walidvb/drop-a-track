@@ -40,7 +40,7 @@ export function Browse({
   mine?: string[];
   /** A drop still to make (a fresh scan): that bag offers to go back to the drop form. */
   drop?: { handle: string; onDrop: () => void };
-  /** Bags this browser scanned and hasn't dropped into yet: counted on the poster's Your drops. */
+  /** Bags this browser scanned and hasn't dropped into yet: counted on the poster's Drops waiting sticker (phones). */
   pendingDrops?: number;
 }) {
   const asideRef = useRef<HTMLElement>(null);

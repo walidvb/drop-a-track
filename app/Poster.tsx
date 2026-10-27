@@ -11,11 +11,14 @@ const STEPS = [
   ["03", "Get a drop", "They drop a single link into your bag. One per person."],
 ];
 
-/** The way to /my-drops on phones, where scans happen: a sticker on the poster, there only while drops are waiting. */
+/**
+ * The way to /my-drops on phones, where scans happen: a sticker slapped on the poster below the
+ * bar, over TRACK, there only while drops are waiting.
+ */
 function DropsWaiting({ pending }: { pending: number }) {
   return (
     <span className={styles.stackedOnly}>
-      <Link href="/my-drops" className={`${styles.sticker} ${styles.waiting}`} aria-label={`Your drops, ${pending} waiting`}>
+      <Link href="/my-drops" className={`${styles.sticker} ${styles.waiting}`}>
         <span className={styles.stickerCount}>{padCount(pending)}</span>
         <span className={styles.stickerLabel}>
           Drops
@@ -91,6 +94,7 @@ export function Poster({
             <span>See past bags</span>
             <span aria-hidden="true">→</span>
           </Link>
+          {pendingDrops > 0 && <DropsWaiting pending={pendingDrops} />}
         </nav>
       </header>
       <div style={{ flex: 1 }} />
@@ -154,7 +158,6 @@ export function Poster({
         TRACK
       </FitText>
     </div>
-    {pendingDrops > 0 && <DropsWaiting pending={pendingDrops} />}
   </main>
   );
 }

@@ -35,10 +35,12 @@
 .metaButton { min-height: 44px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer }
 .metaButton:hover { text-decoration: underline }
 
-/* Twelve covers across the bag at any width, never under 60px: past that the row scrolls. */
-.covers { --slot: max(60px, calc(100cqw / 12)); display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none }
+/* Six and a half covers across a phone, so the half at the edge says the row scrolls; twelve
+   across a wide bag. */
+.covers { --slot: calc(100cqw / 6.5); display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none }
 .covers::-webkit-scrollbar { display: none }
 @media (hover: hover) { .covers { scrollbar-width: thin } }
+@container (min-width: 780px) { .covers { --slot: calc(100cqw / 12) } }
 .cover, .empty { position: relative; flex: 0 0 var(--slot); height: var(--slot); scroll-snap-align: start }
 .cover { padding: 0; border: 0; background: none; cursor: pointer }
 .cover:hover { outline: 3px solid var(--magenta); outline-offset: -3px }

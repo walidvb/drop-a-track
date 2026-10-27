@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type InputHTMLAttributes } from "react";
+import { useEffect, useMemo, useRef, useState, type InputHTMLAttributes } from "react";
 import { MediaEngine, usePlayerQueue } from "@cucu/media/react";
 import { Artwork } from "@/components/ds/Artwork";
 import { Player } from "@/components/ds/Player";
@@ -34,16 +34,26 @@ export function AllBags({ bags }: { bags: HomeBag[] }) {
   // The first track is cued (so its player loads early) but nothing counts as playing until a tap.
   const [started, setStarted] = useState(false);
   const [sheet, setSheet] = useState(false);
+  const opener = useRef<HTMLButtonElement>(null);
+  const closeSheet = () => {
+    setSheet(false);
+    opener.current?.focus();
+  };
 
   const cued = all.find((t) => t.id === queue.currentId) ?? null;
   const current = started ? cued : null;
   const bagOf = (t: HomeTrack) => bags.find((b) => b.handle === t.handle)!;
-  /** "03/07": the track's place in its bag. */
-  const place = (t: HomeTrack) => `${padCount(bagOf(t).tracks.indexOf(t) + 1)}/${padCount(bagOf(t).tracks.length)}`;
+  /** "03/07": the track's number in its bag, oldest first, as its row in the list numbers it. */
+  const place = (t: HomeTrack) => {
+    const { tracks } = bagOf(t);
+    return `${padCount(tracks.length - tracks.indexOf(t))}/${padCount(tracks.length)}`;
+  };
   const dur = queue.progress.duration || current?.duration || 0;
   const pct = dur ? Math.min(100, (queue.progress.playedSeconds / dur) * 100) : 0;
 
+  /** A bag or a track picked by hand plays on from there, bag after bag: it ends a shuffle. */
   const play = (t: HomeTrack) => {
+    setShuffled(null);
     setStarted(true);
     queue.toggle(t.id);
   };
@@ -57,6 +67,8 @@ export function AllBags({ bags }: { bags: HomeBag[] }) {
       const j = Math.floor(Math.random() * (i + 1));
       [s[i], s[j]] = [s[j], s[i]];
     }
+    // Start on something else than what's playing (re-selecting it would only reset its progress bar).
+    if (s.length > 1 && s[0].id === queue.currentId) [s[0], s[1]] = [s[1], s[0]];
     setShuffled(s);
     setStarted(true);
     queue.select(s[0].id);
@@ -64,7 +76,7 @@ export function AllBags({ bags }: { bags: HomeBag[] }) {
 
   useEffect(() => {
     if (!sheet) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setSheet(false);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeSheet();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [sheet]);
@@ -76,6 +88,7 @@ export function AllBags({ bags }: { bags: HomeBag[] }) {
         bag={bagOf(cued)}
         place={place(cued)}
         big={big}
+        started={started}
         playing={started && queue.playing}
         buffering={queue.buffering}
         position={queue.progress.playedSeconds}
@@ -97,7 +110,7 @@ export function AllBags({ bags }: { bags: HomeBag[] }) {
               ← D.A.T
             </Link>
             <span>
-              {padCount(bags.length)} bags · {padCount(all.length)} tracks
+              {bags.length} bags · {all.length} tracks
             </span>
           </div>
           <h1 className={styles.title}>
@@ -177,7 +190,7 @@ export function AllBags({ bags }: { bags: HomeBag[] }) {
 
       {current && (
         <div className={styles.dock}>
-          <button type="button" className={styles.bar} aria-expanded={sheet} onClick={() => setSheet(true)}>
+          <button ref={opener} type="button" className={styles.bar} aria-expanded={sheet} onClick={() => setSheet(true)}>
             <span>
               {current.handle}’s bag · {place(current)}
             </span>
@@ -197,9 +210,10 @@ export function AllBags({ bags }: { bags: HomeBag[] }) {
       )}
       {sheet && current && (
         <>
-          <div className={styles.backdrop} aria-hidden="true" onClick={() => setSheet(false)} />
+          <div className={styles.backdrop} aria-hidden="true" onClick={closeSheet} />
           <div role="dialog" aria-modal="true" aria-label="Now playing" className={styles.sheet}>
-            <button type="button" className={styles.bar} onClick={() => setSheet(false)}>
+            {/* Focus starts here, as in Modal, and goes back to the bar on close. */}
+            <button type="button" className={styles.bar} onClick={closeSheet} autoFocus>
               <span>
                 {current.handle}’s bag · {place(current)}
               </span>
@@ -221,6 +235,7 @@ function NowPlaying({
   bag,
   place,
   big,
+  started,
   playing,
   buffering,
   position,
@@ -235,6 +250,8 @@ function NowPlaying({
   bag: HomeBag;
   place: string;
   big: boolean;
+  /** Nothing played yet: the track is only cued. */
+  started: boolean;
   playing: boolean;
   buffering: boolean;
   position: number;
@@ -268,7 +285,9 @@ function NowPlaying({
       <div className={styles.np}>
         {big && (
           <Link href={bagPath(bag.handle)} className={styles.npBag}>
-            <span>Now playing · {bag.handle}’s bag</span>
+            <span>
+              {started ? "Now playing" : "Up first"} · {bag.handle}’s bag
+            </span>
             <span>{place} →</span>
           </Link>
         )}

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Button } from "@/components/ds/Button";
 import { monoCaps } from "@/components/ds/styles";
 import { Texture } from "@/components/ds/Texture";
 import { FitText } from "@/components/FitText";
@@ -12,17 +11,19 @@ const STEPS = [
   ["03", "Get a drop", "They drop a single link into your bag. One per person."],
 ];
 
-/** The way to /my-drops: there for good, counting pending drops (and nudging) when there are any. */
-function YourDrops({ pending }: { pending: number }) {
+/** The way to /my-drops on phones, where scans happen: a sticker on the poster, there only while drops are waiting. */
+function DropsWaiting({ pending }: { pending: number }) {
   return (
-    <Link
-      href="/my-drops"
-      className={pending > 0 ? `${styles.yourDrops} ${styles.waiting}` : styles.yourDrops}
-      aria-label={pending > 0 ? `Your drops, ${pending} pending` : undefined}
-    >
-      <span className={styles.yourDropsLabel}>Your drops</span>
-      {pending > 0 && <span className={styles.yourDropsCount}>{padCount(pending)}</span>}
-    </Link>
+    <span className={styles.stackedOnly}>
+      <Link href="/my-drops" className={`${styles.sticker} ${styles.waiting}`} aria-label={`Your drops, ${pending} waiting`}>
+        <span className={styles.stickerCount}>{padCount(pending)}</span>
+        <span className={styles.stickerLabel}>
+          Drops
+          <br />
+          waiting →
+        </span>
+      </Link>
+    </span>
   );
 }
 
@@ -32,12 +33,10 @@ function YourDrops({ pending }: { pending: number }) {
  */
 export function Poster({
   pendingDrops,
-  onLatestDrops,
   onGetShirt,
 }: {
-  /** Shown on Your drops when there are any. */
+  /** Counted on the Drops waiting sticker, shown when there are any. */
   pendingDrops: number;
-  onLatestDrops: () => void;
   onGetShirt: () => void;
 }) {
   return (
@@ -60,40 +59,21 @@ export function Poster({
         position: "relative",
         display: "flex",
         flexDirection: "column",
-        padding: "20px clamp(16px,3vw,32px) clamp(16px,3vw,28px)",
+        ["--pad-x" as string]: "clamp(16px,3vw,32px)",
+        ["--pad-b" as string]: "clamp(16px,3vw,28px)",
+        padding: "20px var(--pad-x) var(--pad-b)",
         gap: 20,
         minWidth: 0,
       }}
     >
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 12 }}>
+      <header style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
           <span style={{ ...monoCaps, fontSize: 10, background: "var(--paper)", padding: "3px 8px" }}>© A Diggers Delights project</span>
-          <div className={styles.reveal} style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            <span className={styles.stackedOnly}>
-              <Button variant="outline" size="md" iconRight="↓" onClick={onLatestDrops} style={{ background: "var(--paper)" }}>
-                Latest drops
-              </Button>
-            </span>
-            <Button variant="primary" size="md" iconRight="→" onClick={onGetShirt}>
-              Get your own
-            </Button>
-            <span className={styles.stackedOnly}>
-              <YourDrops pending={pendingDrops} />
-            </span>
-          </div>
-        </div>
-        {/* Side by side when there's room, else D.A.T over Your drops. */}
-        <div
-          className={styles.reveal}
-          style={{ display: "flex", flexWrap: "wrap-reverse", justifyContent: "flex-end", alignItems: "flex-start", gap: "12px 24px" }}
-        >
-          <span className={styles.wideOnly}>
-            <YourDrops pending={pendingDrops} />
-          </span>
           <span
+            className={styles.reveal}
             style={{
               fontFamily: "var(--font-display)",
-              fontSize: "clamp(48px,7vw,96px)",
+              fontSize: "clamp(30px,7vw,96px)",
               lineHeight: 0.8,
               color: "transparent",
               WebkitTextStroke: "2px var(--ink)",
@@ -102,6 +82,16 @@ export function Poster({
             D.A.T
           </span>
         </div>
+        <nav className={`${styles.reveal} ${styles.ways}`}>
+          <button type="button" className={`${styles.way} ${styles.wayPrimary}`} onClick={onGetShirt}>
+            <span>Get your own</span>
+            <span aria-hidden="true">→</span>
+          </button>
+          <Link href="/bags" className={styles.way}>
+            <span>See past bags</span>
+            <span aria-hidden="true">→</span>
+          </Link>
+        </nav>
       </header>
       <div style={{ flex: 1 }} />
       <div className={styles.reveal} style={{ display: "flex", alignItems: "flex-end", gap: 8, minWidth: 0 }}>
@@ -130,7 +120,7 @@ export function Poster({
         </section>
       </div>
       {/* Bleeds through the column's padding so DROP A kisses the left and bottom edges and TRACK. */}
-      <div style={{ minWidth: 0, marginInline: "calc(-1 * clamp(16px,3vw,32px))", marginBottom: "calc(-1 * clamp(16px,3vw,28px))" }}>
+      <div style={{ minWidth: 0, marginInline: "calc(-1 * var(--pad-x))", marginBottom: "calc(-1 * var(--pad-b))" }}>
         <FitText
           axis="w"
           className={styles.enter}
@@ -164,6 +154,7 @@ export function Poster({
         TRACK
       </FitText>
     </div>
+    {pendingDrops > 0 && <DropsWaiting pending={pendingDrops} />}
   </main>
   );
 }

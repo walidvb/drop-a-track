@@ -127,7 +127,7 @@ export function Browse({
       className={shown ? styles.shown : undefined}
       style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", background: "var(--paper)" }}
     >
-      <Poster pendingDrops={pendingDrops} onLatestDrops={scrollToPanel} onGetShirt={() => setShirt(true)} />
+      <Poster pendingDrops={pendingDrops} onGetShirt={() => setShirt(true)} />
 
       <aside
         ref={asideRef}

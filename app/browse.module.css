@@ -21,35 +21,83 @@
 .close { background: var(--paper); color: var(--ink) }
 .close:hover { background: var(--ink); color: var(--paper) }
 
-/* Get your own · All bags: two halves of one bar, across the column's padding on phones. */
-.ways {
-  position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-inline: calc(-1 * var(--pad-x)); border-block: var(--border-w) solid var(--ink);
+/* Phones: the poster holds still, one screen tall (the small viewport, so it fits with Safari's
+   bars out), and what follows scrolls up over it. Beside the drops it's the full height. */
+.poster { position: relative; height: 100vh; min-height: 620px }
+@media (max-width: 999px) { .poster { position: sticky; top: 0; z-index: 0; height: 100svh; min-height: 0 } }
+
+/* © chip and D.A.T: side by side, or D.A.T under the chip on phones. */
+.head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px }
+.dat { font-size: clamp(56px, 7vw, 96px) }
+@media (max-width: 999px) {
+  .head { flex-direction: column; gap: 10px }
+  .dat { font-size: 56px }
 }
-@media (min-width: 1000px) {
-  .ways { grid-template-columns: repeat(2, 220px); align-self: flex-start; margin-inline: 0; border: var(--border-w) solid var(--ink) }
+
+/* How it works: the pitch, then one card per way in, ink showing through the 1px gaps as rules.
+   Three across, two with Listen across the bottom (so no empty cell), or stacked on phones. */
+.how {
+  container-type: inline-size; max-width: 860px; display: flex; flex-direction: column;
+  background: var(--paper); border: var(--border-w) solid var(--ink);
 }
-.way {
-  display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; gap: 12px;
-  min-height: 76px; padding: 10px 12px; border: 0; background: var(--paper); color: var(--ink);
-  text-align: left; text-decoration: none; cursor: pointer;
-  font-family: var(--font-heavy); font-size: 14px; line-height: 1.1; letter-spacing: var(--tracking-caps); text-transform: uppercase;
+.pitch {
+  margin: 0; padding: 14px 16px 16px; border-bottom: var(--border-w) solid var(--ink);
+  font-size: 22px; font-weight: 800; line-height: 1.15; letter-spacing: -0.01em; text-wrap: pretty;
+}
+.howTitle {
+  margin: 0; padding: 4px 16px; border-bottom: var(--border-w) solid var(--ink); color: var(--gray-600);
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: var(--tracking-caps); text-transform: uppercase;
+}
+.cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px; background: var(--ink) }
+@container (min-width: 440px) {
+  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  .card:last-child { grid-column: 1 / -1 }
+}
+@container (min-width: 660px) {
+  .cards { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+  .card:last-child { grid-column: auto }
+}
+.card { display: flex; flex-direction: column; gap: 10px; padding: 16px; background: var(--paper) }
+.card h3 {
+  margin: 0; font-family: var(--font-display); font-weight: normal; font-size: 30px; line-height: 0.82;
+  letter-spacing: -0.02em; text-transform: uppercase;
+}
+.card p { margin: 0; font-size: 15px; font-weight: 500; line-height: 1.35 }
+
+/* Hovers invert, as everywhere in the system; the ink one goes magenta. */
+.cta {
+  margin-top: auto; min-height: 48px; display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 0 14px; border: var(--border-w) solid var(--ink); background: var(--paper); color: var(--ink);
+  text-decoration: none; cursor: pointer;
+  font-family: var(--font-heavy); font-size: 15px; letter-spacing: var(--tracking-caps); text-transform: uppercase;
   transition: background var(--dur-fast) var(--ease-snap), color var(--dur-fast) var(--ease-snap);
 }
-.way:hover { background: var(--ink); color: var(--paper) }
-.wayPrimary { background: var(--ink); color: var(--paper) }
-.wayPrimary:hover { background: var(--magenta); color: var(--ink) }
-@media (min-width: 1000px) { .way { min-height: 88px; padding: 12px 14px; font-size: 16px } }
+.cta:hover { background: var(--ink); color: var(--paper) }
+.ctaPrimary { background: var(--ink); color: var(--paper) }
+.ctaPrimary:hover { background: var(--magenta); color: var(--ink) }
 
-/* Drops waiting (phones only): hangs off the bar's bottom right corner, over TRACK. */
+@media (max-width: 999px) {
+  .pitch { padding: 12px; font-size: 17px }
+  .howTitle { padding: 4px 12px }
+  .card { gap: 8px; padding: 12px }
+  .card h3 { font-size: 24px }
+  .card p { font-size: 14px }
+  .cta { min-height: 44px; padding: 0 12px; font-size: 14px }
+}
+
+/* On phones How it works leaves the poster for its own row under it, over the poster's edges. */
+.howBelow { display: none }
+@media (max-width: 999px) { .howBelow { display: block; flex: 1 1 100%; position: relative; z-index: 1; padding: 0 16px 16px } }
+
+/* Drops waiting (phones only): slapped on the poster's top right, over TRACK. */
 .sticker {
-  position: absolute; z-index: 1; top: calc(100% + 16px); left: calc(100% - 16px); width: 112px; height: 112px;
+  position: absolute; z-index: 1; top: 120px; right: 14px; width: 104px; height: 104px;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
   border: 3px solid var(--ink); border-radius: 50%; background: var(--magenta); color: var(--ink);
   rotate: -12deg; text-align: center; text-decoration: none;
 }
-.stickerCount { font-family: var(--font-display); font-size: 40px; line-height: 0.8 }
-.stickerLabel { font-family: var(--font-heavy); font-size: 11px; line-height: 1.1; letter-spacing: var(--tracking-caps); text-transform: uppercase }
+.stickerCount { font-family: var(--font-display); font-size: 36px; line-height: 0.8 }
+.stickerLabel { font-family: var(--font-heavy); font-size: 10px; line-height: 1.1; letter-spacing: var(--tracking-caps); text-transform: uppercase }
 
 /* With drops still to make the sticker keeps nudging, once the poster is in: every 3s it
    shakes and kicks out a shadow, and the count pops. Hovering holds it still. */
@@ -74,16 +122,9 @@
 /* The drops panel sits beside the poster until the two no longer fit (620 + 380px), then wraps
    below it: a phone, then, where the Drops waiting sticker shows. */
 .stackedOnly { display: none }
-@media (max-width: 999px) { .stackedOnly { display: contents } }
-
-/* The three steps side by side, or stacked once their box is too narrow for three columns (phones). */
-.stepsBox { container-type: inline-size }
-.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--ink) }
-.steps > * + * { border-left: 1px solid var(--ink) }
-@container (max-width: 380px) {
-  .steps { grid-template-columns: 1fr }
-  .steps > * + * { border-left: 0; border-top: 1px solid var(--ink) }
-}
+@media (max-width: 999px) { .stackedOnly { display: contents } .besideOnly { display: none } }
+.drops { border-left: 4px solid var(--ink) }
+@media (max-width: 999px) { .drops { border-left: 0; border-top: 4px solid var(--ink) } }
 
 /* Coming in: DROP A then TRACK slide 10px into place (--d apart, each from its own --from: DROP A
    up, the rotated TRACK right to left), then everything else fades in together, and the list's

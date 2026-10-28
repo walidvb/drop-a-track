@@ -221,13 +221,22 @@ export function AllBags({
                 </div>
               ) : (
                 // Scrolls sideways once there's more than fits; a cut-off cover at the edge says so.
-                // A cover opens the bag.
+                // A cover plays its track and opens the bag.
                 <div className={styles.covers}>
                   {Array.from({ length: Math.max(SLOTS, b.tracks.length) }, (_, k) => {
                     const t = b.tracks[k];
                     if (!t) return <span key={`empty-${k}`} className={styles.empty} />;
                     return (
-                      <button key={t.id} type="button" className={styles.cover} aria-label={`Open ${b.handle}’s bag`} onClick={() => openBag(b.handle)}>
+                      <button
+                        key={t.id}
+                        type="button"
+                        className={styles.cover}
+                        aria-label={`${t.id === now?.id && player.playing ? "Pause" : "Play"} ${t.title} by ${t.artist}`}
+                        onClick={() => {
+                          playNow(t);
+                          openBag(b.handle);
+                        }}
+                      >
                         <Artwork src={t.thumbnail} source={t.source} size="100%" mono={false} />
                         {t.id === now?.id && <span className={styles.coverNow}>{player.playing ? "❚❚" : "▶︎"}</span>}
                       </button>

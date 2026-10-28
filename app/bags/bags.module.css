@@ -99,6 +99,12 @@
 }
 .item:active { cursor: grabbing }
 .itemCover { position: relative; display: block; width: 88px; height: 88px }
+/* An item shows only its cover (over the grid's black) until that cover is landing (.landed, set
+   by Item); then its frame and details fade in. */
+.grid .item { transition: background var(--dur-fast) var(--ease-snap), box-shadow 250ms ease }
+.grid .item:not(.landed) { box-shadow: none; background: transparent }
+.grid .itemText { transition: opacity 250ms ease }
+.grid .item:not(.landed) .itemText { opacity: 0 }
 .itemText { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 3px }
 .itemArtist, .itemBy { overflow: hidden; white-space: nowrap; text-overflow: ellipsis }
 .itemTitle { font-family: var(--font-display-wide); font-size: 15px; line-height: 1.05; text-transform: uppercase }

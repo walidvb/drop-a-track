@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { FocusScope } from "@radix-ui/react-focus-scope";
+import { motion } from "motion/react";
 import { Sheet } from "react-modal-sheet";
 import { Artwork } from "@/components/ds/Artwork";
 import { Marquee } from "@/components/ds/Marquee";
@@ -19,6 +20,15 @@ import { useEdgeScroll } from "./useEdgeScroll";
 
 /** A row of covers is at least this long: a short bag shows its empty slots. */
 const SLOTS = 12;
+
+// Opening a bag, its covers fly between the strip and an open bag's grid, a few hundredths of a second
+// apart, but in groups of six so they all seem to leave at once; each item's frame and details
+// fade in as its own cover lands.
+const FLY = 0.35;
+const stagger = (i: number) => (i % 6) * 0.025;
+/** An item's frame and details start fading in this long before its cover stops (s). */
+const EARLY = 0.1;
+const fly = (i: number) => ({ duration: FLY, ease: [0.2, 0.8, 0.2, 1] as const, delay: stagger(i) });
 
 const display = { fontFamily: "var(--font-display)", letterSpacing: "-0.02em", textTransform: "uppercase", whiteSpace: "nowrap" } as const;
 
@@ -225,9 +235,10 @@ export function AllBags({
               {open ? (
                 <div className={styles.grid} role="group" aria-label={`${b.handle}’s tracks`}>
                   {b.tracks.length === 0 && <p className={styles.none}>Nothing in the bag yet. Be the first.</p>}
-                  {b.tracks.map((t) => (
+                  {b.tracks.map((t, k) => (
                     <Item
                       key={t.id}
+                      index={k}
                       track={t}
                       now={t.id === now?.id}
                       playing={player.playing}
@@ -256,7 +267,10 @@ export function AllBags({
                           openBag(b.handle);
                         }}
                       >
-                        <Artwork src={t.thumbnail} source={t.source} size="100%" mono={false} />
+                        {/* Same layoutId as in the open bag's grid: covers fly between the two. */}
+                        <motion.span layoutId={`cover-${t.id}`} transition={fly(k)} style={{ display: "block", width: "100%", height: "100%" }}>
+                          <Artwork src={t.thumbnail} source={t.source} size="100%" mono={false} />
+                        </motion.span>
                         {t.id === now?.id && <span className={styles.coverNow}>{player.playing ? "❚❚" : "▶︎"}</span>}
                       </button>
                     );
@@ -331,6 +345,7 @@ export function AllBags({
  * queue to drag onto, "+ Queue" queues it last (not on the track that's on: it's already playing).
  */
 function Item({
+  index,
   track,
   now,
   playing,
@@ -338,6 +353,8 @@ function Item({
   onPlay,
   onQueue,
 }: {
+  /** Its place in the bag: when its cover flies in (see `fly`). */
+  index: number;
   track: HomeTrack;
   /** It's the player's track (playing, paused or only cued). */
   now: boolean;
@@ -346,13 +363,20 @@ function Item({
   onPlay: () => void;
   onQueue: () => void;
 }) {
+  // Its frame and details wait until its cover is about to land (or, when no cover
+  // flies in, as on arriving at a bag's page, until it would have).
+  const [landed, setLanded] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setLanded(true), (FLY + stagger(index)) * 1000 + 150);
+    return () => clearTimeout(t);
+  }, [index]);
   return (
     <div
       role="button"
       tabIndex={0}
       aria-pressed={now}
       aria-label={`${now && playing ? "Pause" : "Play"} ${track.title} by ${track.artist}`}
-      className={`${styles.item} ${mine ? styles.mine : ""}`}
+      className={`${styles.item} ${mine ? styles.mine : ""} ${landed ? styles.landed : ""}`}
       data-marquee-host
       {...dragTrack(track)}
       onClick={onPlay}
@@ -364,7 +388,16 @@ function Item({
       }}
     >
       <span className={styles.itemCover}>
-        <Artwork src={track.thumbnail} source={track.source} size="100%" mono={false} />
+        {/* Same layoutId as the cover in the strip. */}
+        <motion.span
+          layoutId={`cover-${track.id}`}
+          transition={fly(index)}
+          onLayoutAnimationStart={() => setTimeout(() => setLanded(true), (stagger(index) + FLY - EARLY) * 1000)}
+          onLayoutAnimationComplete={() => setLanded(true)}
+          style={{ display: "block", width: "100%", height: "100%" }}
+        >
+          <Artwork src={track.thumbnail} source={track.source} size="100%" mono={false} />
+        </motion.span>
         {now && <span className={styles.coverNow}>{playing ? "❚❚" : "▶︎"}</span>}
       </span>
       <span className={styles.itemText}>

@@ -1,7 +1,8 @@
 /* All bags: the bags in one column; beside them from 1000px the now-playing panel, below that a
    bar docked at the bottom that opens into a sheet. Hovers invert, links go magenta; a bag goes
    magenta behind its text, which keeps its colour. */
-.page { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; background: var(--paper); color: var(--ink) }
+/* No scroll anchoring: a bag closing above the screen would hold the view still against glideTo. */
+.page { overflow-anchor: none; min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; background: var(--paper); color: var(--ink) }
 .main { min-width: 0; display: flex; flex-direction: column }
 .aside { display: none }
 @media (min-width: 1000px) {
@@ -99,6 +100,12 @@
 }
 .item:active { cursor: grabbing }
 .itemCover { position: relative; display: block; width: 88px; height: 88px }
+/* An item shows only its cover (over the grid's black) until that cover is landing (.landed, set
+   by Item); then its frame and details fade in. */
+.grid .item { transition: background var(--dur-fast) var(--ease-snap), box-shadow 250ms ease }
+.grid .item:not(.landed) { box-shadow: none; background: transparent }
+.grid .itemText { transition: opacity 250ms ease }
+.grid .item:not(.landed) .itemText { opacity: 0 }
 .itemText { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 3px }
 .itemArtist, .itemBy { overflow: hidden; white-space: nowrap; text-overflow: ellipsis }
 .itemTitle { font-family: var(--font-display-wide); font-size: 15px; line-height: 1.05; text-transform: uppercase }

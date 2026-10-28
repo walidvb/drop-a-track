@@ -19,3 +19,8 @@ for src in assets/textures/*.png assets/textures/*.jpg; do
     -quality 82 "public/textures/$name.webp"
   echo "$src → public/textures/$name.webp"
 done
+# The share images (lib/og.tsx) take A and B as black on white JPEGs: satori reads no WebP.
+mkdir -p assets/og
+for n in a b; do
+  magick "public/textures/ripples-$n.webp" -background white -flatten -colorspace Gray -quality 85 "assets/og/ripples-$n.jpg"
+done

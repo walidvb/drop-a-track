@@ -211,7 +211,7 @@ export function AllBags({
         <header className={styles.head}>
           <h1 className={styles.title}>
             {/* Outlined, so it never reads as one more bag. */}
-            <FitText style={{ ...display, color: "transparent", WebkitTextStroke: "2px var(--ink)" }}>All bags</FitText>
+            <FitText style={{ ...display, color: "transparent", WebkitTextStroke: "2px var(--ink)" }}>D.A.T club</FitText>
           </h1>
           {/* Shuffle, and beside it a search icon that grows into a field over it (Escape clears, then closes). */}
           <div className={`${styles.tools} ${searching ? styles.searching : ""}`}>

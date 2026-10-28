@@ -438,17 +438,25 @@ export function AllBags({
 }
 
 /**
- * Scrolls to `el` (its scroll margin below the top) while the bags above and around it are still
- * opening or closing: its place is read again every frame, so the scroll ends on it, not on where
- * it was when the scroll began. Eases there; done once `ms` have passed and it's arrived (or can't
- * scroll further), or as soon as the reader scrolls. Returns a stop, for an effect's cleanup.
+ * Scrolls only as far as `el` needs to be seen whole, between its scroll margins (the bar at the
+ * top; the phone's player bar at the bottom): not at all if it already is; up just enough to show
+ * its bottom; down to its top if that's above; and, too tall to fit, its top under the bar.
+ * Re-read every frame while the bags above and around it are still opening or closing (and it
+ * unfolds), so it ends where the bag ends up, not where it was. Eases there; done once `ms` have
+ * passed and it's arrived (or can't scroll further), or as soon as the reader scrolls. Returns a
+ * stop, for an effect's cleanup.
  */
 function glideTo(el: HTMLElement, ms: number) {
   const start = performance.now();
   let last = NaN;
   let frame = requestAnimationFrame(function step(now) {
-    const target = el.getBoundingClientRect().top + scrollY - parseFloat(getComputedStyle(el).scrollMarginTop || "0");
-    const left = target - scrollY;
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    const top = parseFloat(cs.scrollMarginTop || "0");
+    const bottom = innerHeight - parseFloat(cs.scrollMarginBottom || "0");
+    const above = r.top - top;
+    const below = r.bottom - bottom;
+    const left = r.height > bottom - top || above < 0 ? above : below > 0 ? below : 0;
     // Done once settled: arrived, or stuck (a bag near the bottom can't scroll all the way up).
     if (now - start > ms && (Math.abs(left) < 1 || scrollY === last)) return stop();
     last = scrollY;

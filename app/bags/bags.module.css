@@ -61,6 +61,7 @@
    keeps its colour). Clipped, so the handle's bleed stays inside; scrolled to below the bar at the top. */
 .bag {
   container-type: inline-size; overflow: clip; display: flex; flex-direction: column; scroll-margin-top: 46px; /* the bar at the top, its rule included */
+  scroll-margin-bottom: var(--dock-h, 0px); /* the phone's player bar */
   border-bottom: 2px solid var(--ink); background: var(--paper); color: var(--ink);
 }
 .dark { background: var(--ink); color: var(--paper) }

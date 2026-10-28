@@ -11,8 +11,10 @@ let ctx: CanvasRenderingContext2D | null = null;
  * re-render.
  *
  * Edge to edge (design system): the size comes from the ink width, not the advance width, the
- * first letter's side bearing is pulled out with a negative inline-start margin, and `text-box`
- * trims the line box to cap height over the baseline, so the ink touches all four sides.
+ * first letter's side bearing is pulled out with a negative inline-start margin, and negative
+ * block margins trim the line box to the ink's top over the baseline, so the ink touches all four
+ * sides. (Measured, not `text-box: trim-both cap alphabetic`: Safari ignores that in vertical
+ * writing modes, which left TRACK's column twice as wide as its letters.)
  */
 export function FitText({
   axis = "w",
@@ -57,10 +59,14 @@ export function FitText({
       const m = ctx.measureText(text);
       const ink = m.actualBoundingBoxLeft + m.actualBoundingBoxRight + (native ? 0 : spacing * ([...text].length - 1));
       const bearing = -m.actualBoundingBoxLeft;
+      // At line-height 1 the font's content area sits centred in the 100px line box.
+      const baseline = (100 - m.fontBoundingBoxAscent - m.fontBoundingBoxDescent) / 2 + m.fontBoundingBoxAscent;
 
       const fitted = avail > 0 && ink > 0 ? (100 * avail) / ink : cap;
       el.style.fontSize = Math.max(min, Math.min(cap, fitted)) + "px";
       el.style.marginInlineStart = `${-bearing / 100}em`;
+      el.style.marginBlockStart = `${-(baseline - m.actualBoundingBoxAscent) / 100}em`;
+      el.style.marginBlockEnd = `${-(100 - baseline) / 100}em`;
     };
     fit();
     const ro = new ResizeObserver(fit);
@@ -70,7 +76,7 @@ export function FitText({
   }, [axis, max, min, children]);
   return (
     // A block, so no parent line box (strut) adds space under the baseline.
-    <span ref={ref} className={className} style={{ ...style, display: "block", fontSize: max, textBox: "trim-both cap alphabetic" }}>
+    <span ref={ref} className={className} style={{ ...style, display: "block", fontSize: max, lineHeight: 1 }}>
       {children}
     </span>
   );

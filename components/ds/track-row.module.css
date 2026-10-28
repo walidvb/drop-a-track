@@ -1,6 +1,7 @@
-/* A row inverts on hover and while it's the current track. Your drop stays magenta. */
+/* A row inverts on hover and while it's the current track. Your drop stays magenta. Never
+   squeezed by a scrolling flex column: its min-height would let it shrink below its text. */
 .row {
-  display: grid; grid-template-columns: 56px 48px minmax(0, 1fr) auto; align-items: center; gap: 12px;
+  flex-shrink: 0; display: grid; grid-template-columns: 56px 48px minmax(0, 1fr) auto; align-items: center; gap: 12px;
   min-height: var(--row-h); padding: 8px 0 8px 12px; border-bottom: var(--rule);
   background: var(--paper); color: var(--ink); cursor: pointer;
   transition: background var(--dur-fast) var(--ease-snap);

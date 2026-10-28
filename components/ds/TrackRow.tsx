@@ -2,6 +2,7 @@
 
 import { sourceCode } from "@/lib/format";
 import { Artwork } from "./Artwork";
+import { Marquee } from "./Marquee";
 import { ellipsis, monoCaps } from "./styles";
 import styles from "./track-row.module.css";
 import type { TrackView } from "./types";
@@ -14,6 +15,7 @@ export function TrackRow({
   playing,
   mine = false,
   ruled = false,
+  mono,
   onPlay,
 }: {
   track: TrackView;
@@ -24,6 +26,8 @@ export function TrackRow({
   mine?: boolean;
   /** A rule between the text and the source link (inside a bag). */
   ruled?: boolean;
+  /** The cover in black and white (Artwork's default). */
+  mono?: boolean;
   onPlay: () => void;
 }) {
   const who = track.droppedBy ? track.droppedBy + (track.droppedFrom ? ", " + track.droppedFrom : "") : null;
@@ -32,6 +36,7 @@ export function TrackRow({
       role="button"
       tabIndex={0}
       aria-pressed={active}
+      data-marquee-host
       className={mine ? `${styles.row} ${styles.mine}` : styles.row}
       onClick={onPlay}
       onKeyDown={(k) => {
@@ -52,14 +57,14 @@ export function TrackRow({
       >
         {active && playing ? "▶︎" : String(index).padStart(2, "0")}
       </span>
-      <Artwork src={track.thumbnail} source={track.source} size={48} />
+      <Artwork src={track.thumbnail} source={track.source} size={48} mono={mono} />
       <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-start" }}>
         {mine && (
           <span style={{ ...monoCaps, fontSize: 10, background: "var(--ink)", color: "var(--magenta)", padding: "2px 6px", marginBottom: 2 }}>Your drop</span>
         )}
-        <span style={{ ...ellipsis, fontFamily: "var(--font-display-wide)", fontSize: 15, lineHeight: 1.05, textTransform: "uppercase" }}>
+        <Marquee on={active && playing} style={{ fontFamily: "var(--font-display-wide)", fontSize: 15, lineHeight: 1.05, textTransform: "uppercase" }}>
           {track.title}
-        </span>
+        </Marquee>
         <span style={{ ...ellipsis, fontWeight: 700, fontSize: 13 }}>{track.artist}</span>
         <span style={{ ...ellipsis, fontFamily: "var(--font-mono)", fontSize: 11 }}>{[who, track.droppedAt].filter(Boolean).join(" · ")}</span>
       </div>

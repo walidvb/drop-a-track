@@ -7,7 +7,7 @@ import { ellipsis, monoCaps } from "@/components/ds/styles";
 import { TrackRow } from "@/components/ds/TrackRow";
 import { FitText } from "@/components/FitText";
 import { padNumber } from "@/lib/format";
-import { bagPath, handleFromSlug } from "@/lib/handle";
+import { bagPath, handleFromPath } from "@/lib/handle";
 import type { HomeBag, HomeTrack } from "@/lib/home";
 import { streamRefresher } from "@/lib/streams";
 import styles from "./browse.module.css";
@@ -21,7 +21,7 @@ const HEADER_IN = 840;
 /**
  * Home and every bag page: the poster, and beside it (below it on phones) a column with the
  * latest drops from every bag or one bag, and the player. Opening a bag puts its URL in the
- * address bar (/mira.k) without leaving the page (shallow navigation), so the player keeps
+ * address bar (/bags/mira.k) without leaving the page (shallow navigation), so the player keeps
  * going; loading that URL renders this same view, bag open. The drop flow shows it too, after
  * a Skip or a drop.
  */
@@ -111,7 +111,7 @@ export function Browse({
   }, [initialView]);
   // Back and forward move between the bags opened here.
   useEffect(() => {
-    const onPop = () => showView(handleFromSlug(location.pathname.slice(1)));
+    const onPop = () => showView(handleFromPath(location.pathname));
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);

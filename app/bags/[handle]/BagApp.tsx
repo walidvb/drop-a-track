@@ -11,7 +11,7 @@ import { uploadPathname } from "@/lib/audio-file";
 import { SOURCE_LABEL } from "@/lib/format";
 import type { HomeBag, HomeTrack } from "@/lib/home";
 import { UID_STORAGE_KEY, isUid, newUid } from "@/lib/uid";
-import { Browse } from "../Browse";
+import { Browse } from "../../Browse";
 import bagStyles from "./bag.module.css";
 import { DropForm, type Owner, type PickedAudio } from "./DropForm";
 import { DropSuccess } from "./DropSuccess";

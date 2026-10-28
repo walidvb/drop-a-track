@@ -1,0 +1,14 @@
+/* Cut with "…" at rest; scrolled to its end and back (pausing at each) while on or hovered. */
+.marquee { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis }
+[data-marquee-host]:hover .marquee[data-over],
+.marquee[data-over][data-on] { text-overflow: clip }
+[data-marquee-host]:hover .marquee[data-over] > span,
+.marquee[data-over][data-on] > span { display: inline-block; animation: marquee var(--dur, 6s) ease-in-out infinite alternate }
+@keyframes marquee {
+  0%, 15% { transform: translateX(0) }
+  85%, 100% { transform: translateX(var(--shift)) }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-marquee-host]:hover .marquee[data-over] > span,
+  .marquee[data-over][data-on] > span { animation: none }
+}

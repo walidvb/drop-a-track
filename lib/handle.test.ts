@@ -20,6 +20,6 @@ describe("handles", () => {
     expect(handleFromSlug("@mira.k")).toBe("mira.k");
     expect(handleFromSlug("%40mira.k")).toBe("mira.k");
     expect(handleFromSlug("mira%")).toBeNull();
-    expect(bagPath("mira.k")).toBe("/mira.k");
+    expect(bagPath("mira.k")).toBe("/bags/mira.k");
   });
 });

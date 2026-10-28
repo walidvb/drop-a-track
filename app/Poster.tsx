@@ -1,19 +1,54 @@
 import Link from "next/link";
+import { useId } from "react";
 import { monoCaps } from "@/components/ds/styles";
 import { Texture } from "@/components/ds/Texture";
 import { FitText } from "@/components/FitText";
 import { padCount } from "@/lib/format";
 import styles from "./browse.module.css";
 
-const STEPS = [
-  ["01", "Flex your code.", "Your own QR code, printed on the back."],
-  ["02", "Get scanned.", "Likeminded people point a phone at you."],
-  ["03", "Get a drop", "They drop a single link into your bag. One per person."],
-];
+/**
+ * The pitch and the three ways in: wear one, scan one, listen. Sits on the poster beside the
+ * drops; on phones it comes after the poster instead, scrolling up over it.
+ */
+function HowItWorks({ onGetShirt, className }: { onGetShirt: () => void; className: string }) {
+  const id = useId();
+  return (
+    <section aria-labelledby={id} className={`${styles.reveal} ${styles.how} ${className}`}>
+      <p className={styles.pitch}>
+        Inspired by mixtapes passed hand to hand in simpler times, the D.A.T club is a participatory project by and for music lovers.
+      </p>
+      <h2 id={id} className={styles.howTitle}>
+        How it works
+      </h2>
+      <div className={styles.cards}>
+        <div className={styles.card}>
+          <h3>Wear one</h3>
+          <p>Get a shirt with your own bag code. It becomes a playlist of the people you crossed paths with.</p>
+          <button type="button" className={`${styles.cta} ${styles.ctaPrimary}`} onClick={onGetShirt}>
+            <span>Get your own</span>
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
+        <div className={styles.card}>
+          <h3>Scan one</h3>
+          <p>Spotted a D.A.T shirt? Scan it and paste a track you love. That’s your one drop for that bag.</p>
+        </div>
+        <div className={styles.card}>
+          <h3>Listen</h3>
+          <p>Check anyone’s bag and discover new music!</p>
+          <Link href="/bags" className={styles.cta}>
+            <span>Check all bags</span>
+            <span aria-hidden="true">→</span>
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 /**
- * The way to /my-drops on phones, where scans happen: a sticker slapped on the poster below the
- * bar, over TRACK, there only while drops are waiting.
+ * The way to /my-drops on phones, where scans happen: a sticker slapped on the poster's top right,
+ * over TRACK, there only while drops are waiting.
  */
 function DropsWaiting({ pending }: { pending: number }) {
   return (
@@ -31,8 +66,10 @@ function DropsWaiting({ pending }: { pending: number }) {
 }
 
 /**
- * The D.A.T poster: the drifting moiré, the pitch and the three steps, with DROP A and TRACK
- * fitted to its edges. It comes in (see browse.module.css) once Browse marks the page .shown.
+ * The D.A.T poster: the drifting moiré and How it works, with DROP A and TRACK fitted to its
+ * edges. On phones the poster holds still (sticky, one screen tall) with just Check all bags on
+ * it, and How it works follows it, scrolling up over it. It comes in (see browse.module.css) once
+ * Browse marks the page .shown.
  */
 export function Poster({
   pendingDrops,
@@ -43,13 +80,12 @@ export function Poster({
   onGetShirt: () => void;
 }) {
   return (
+  <>
   <main
+    className={styles.poster}
     style={{
       flex: "999 1 620px",
       minWidth: 0,
-      position: "relative",
-      height: "100vh",
-      minHeight: 620,
       overflow: "hidden",
       display: "grid",
       gridTemplateColumns: "minmax(0,1fr) auto",
@@ -69,60 +105,23 @@ export function Poster({
         minWidth: 0,
       }}
     >
-      <header style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
-          <span style={{ ...monoCaps, fontSize: 10, background: "var(--paper)", padding: "3px 8px" }}>© A Diggers Delights project</span>
-          <span
-            className={styles.reveal}
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "clamp(30px,7vw,96px)",
-              lineHeight: 0.8,
-              color: "transparent",
-              WebkitTextStroke: "2px var(--ink)",
-            }}
-          >
-            D.A.T
-          </span>
-        </div>
-        <nav className={`${styles.reveal} ${styles.ways}`}>
-          <button type="button" className={`${styles.way} ${styles.wayPrimary}`} onClick={onGetShirt}>
-            <span>Get your own</span>
-            <span aria-hidden="true">→</span>
-          </button>
-          <Link href="/bags" className={styles.way}>
-            <span>Check all bags</span>
-            <span aria-hidden="true">→</span>
-          </Link>
-          {pendingDrops > 0 && <DropsWaiting pending={pendingDrops} />}
-        </nav>
+      <header className={styles.head}>
+        <span style={{ ...monoCaps, fontSize: 10, background: "var(--paper)", padding: "3px 8px" }}>© A Diggers Delights project</span>
+        <span
+          className={`${styles.reveal} ${styles.dat}`}
+          style={{ fontFamily: "var(--font-display)", lineHeight: 0.8, color: "transparent", WebkitTextStroke: "2px var(--ink)" }}
+        >
+          D.A.T
+        </span>
       </header>
       <div style={{ flex: 1 }} />
-      <div className={styles.reveal} style={{ display: "flex", alignItems: "flex-end", gap: 8, minWidth: 0 }}>
-        <section
-          className={styles.stepsBox}
-          style={{ maxWidth: 560, minWidth: 0, flex: "0 1 560px", background: "var(--paper)", display: "flex", flexDirection: "column" }}
-        >
-          <p style={{ margin: 0, padding: "12px 14px", fontWeight: 500, fontSize: "clamp(15px,1.3vw,17px)", lineHeight: 1.25, textWrap: "pretty" }}>
-            Inspired by mixtapes passed hand to hand in simpler times, the D.A.T club is a participatory project by and for music lovers.
-          </p>
-          <div className={styles.steps}>
-            {STEPS.map(([n, title, detail]) => (
-              <div key={n} style={{ padding: "10px 14px", minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
-                <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                  <span
-                    style={{ fontFamily: "var(--font-display)", fontSize: 20, lineHeight: 0.8, color: "transparent", WebkitTextStroke: "1.2px var(--ink)" }}
-                  >
-                    {n}
-                  </span>
-                  <span style={{ fontWeight: 800, fontSize: 13, lineHeight: 1.15 }}>{title}</span>
-                </span>
-                <span style={{ fontWeight: 500, fontSize: 12, lineHeight: 1.3, color: "var(--text-secondary)" }}>{detail}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
+      <HowItWorks onGetShirt={onGetShirt} className={styles.besideOnly} />
+      <span className={styles.stackedOnly}>
+        <Link href="/bags" className={`${styles.reveal} ${styles.cta} ${styles.ctaPrimary}`}>
+          <span>Check all bags</span>
+          <span aria-hidden="true">→</span>
+        </Link>
+      </span>
       {/* Bleeds through the column's padding so DROP A kisses the left and bottom edges and TRACK. */}
       <div style={{ minWidth: 0, marginInline: "calc(-1 * var(--pad-x))", marginBottom: "calc(-1 * var(--pad-b))" }}>
         <FitText
@@ -158,6 +157,11 @@ export function Poster({
         TRACK
       </FitText>
     </div>
+    {pendingDrops > 0 && <DropsWaiting pending={pendingDrops} />}
   </main>
+  <div className={styles.howBelow}>
+    <HowItWorks onGetShirt={onGetShirt} className="" />
+  </div>
+  </>
   );
 }

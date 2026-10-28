@@ -71,6 +71,7 @@ export function Browse({
       <Poster pendingDrops={pendingDrops} onGetShirt={() => setShirt(true)} />
 
       <aside
+        className={styles.drops}
         style={{
           flex: "1 1 380px",
           minWidth: 0,
@@ -81,7 +82,6 @@ export function Browse({
           minHeight: 620,
           overflowY: "auto",
           background: "var(--paper)",
-          borderLeft: "4px solid var(--ink)",
           display: "flex",
           flexDirection: "column",
         }}

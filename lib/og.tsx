@@ -82,6 +82,7 @@ function Kiss({ fit, stroke = 0, color = ink, style }: { fit: Fit; stroke?: numb
     <div style={{ display: "flex", flexShrink: 0, height: CAP * fit.size + stroke, ...style }}>
       <span
         style={{
+          ...(stroke ? outline(fit.size, stroke, color) : {}),
           fontFamily: display,
           fontSize: fit.size,
           lineHeight: 1,
@@ -89,7 +90,6 @@ function Kiss({ fit, stroke = 0, color = ink, style }: { fit: Fit; stroke?: numb
           whiteSpace: "nowrap",
           marginTop: -CAP_TOP * fit.size + stroke / 2,
           marginLeft: -fit.bearing + stroke / 2,
-          ...(stroke ? outline(fit.size, stroke, color) : {}),
         }}
       >
         {fit.text}
@@ -198,52 +198,43 @@ export async function homeImage() {
 
 /* ——— All bags · /bags ——— */
 
-/** Outlined numbers' stroke, and the rule between a bag's number and its name. */
+/** The title's outline. */
 const STROKE = 2;
-const RULE = 2;
 
 /**
- * "D.A.T CLUB" kissing the top and both sides, then one column per open bag, by shirt number: the
- * handle stands on end and fills the column's height, its cap height is the column's width, and
- * the outlined number on top fills that width. Bags start over until the width is full (the last
- * column cropped); `live`, the bag with the latest drop, is magenta the first time round.
+ * "D.A.T CLUB" outlined over magenta moiré, its stroke kissing the top and both sides, sat right
+ * on the rule. Under it, one column per open bag, by shirt number, black on white then white on
+ * black: the handle stands on end and fills the column's height, and its cap height is the
+ * column's width. Bags start over until the width is full (the last column cropped); `live`, the
+ * bag with the latest drop, is magenta the first time round.
  */
 export async function allBagsImage({ bags, live }: { bags: { number: number; handle: string }[]; live: number | null }) {
-  const words = bags.flatMap((b) => [`#${padNumber(b.number)}`, b.handle.toUpperCase()]);
-  const [[, moireB], [title, ...inks]] = await Promise.all([loadTextures(), measure(["D.A.T CLUB", ...words])]);
-  const titleFit = fitWidth(title, W);
-  const below = Math.round(CAP * titleFit.size + 16);
+  const [[moireA], [title, ...names]] = await Promise.all([loadTextures(), measure(["D.A.T CLUB", ...bags.map((b) => b.handle.toUpperCase())])]);
+  const titleFit = fitWidth(title, W - STROKE);
+  const below = CAP * titleFit.size + STROKE;
   const h = H - below - 4; // under the 4px rule
 
   const columns = [];
   for (let i = 0, used = 0; used < W && bags.length; i++) {
-    const [num, name] = inks.slice((i % bags.length) * 2, (i % bags.length) * 2 + 2);
-    // name length = h − RULE − number height, number height = CAP × its size + STROKE, its ink = column width − STROKE
-    const size = (h - RULE - STROKE + (CAP * STROKE) / num.ink) / (name.ink + (CAP * CAP) / num.ink);
-    const w = CAP * size;
-    const length = name.ink * size;
-    columns.push({ w, length, live: bags[i % bags.length].number === live && i < bags.length, num: fitWidth(num, w - STROKE), name: fitWidth(name, length) });
-    used += w + 2;
+    const name = names[i % bags.length];
+    const w = (CAP * h) / name.ink;
+    const isLive = bags[i % bags.length].number === live && i < bags.length;
+    const dark = i % 2 === 1 && !isLive;
+    columns.push({ w, name: fitWidth(name, h), bg: isLive ? magenta : dark ? ink : paper, fg: dark ? paper : ink });
+    used += w;
   }
 
   return render(
     <div style={{ width: W, height: H, display: "flex", position: "relative", background: paper, color: ink }}>
-      <Kiss fit={titleFit} style={{ position: "absolute", left: 0, top: 0, width: W }} />
+      <Moire src={moireA} w={W} h={below} tint={magenta} />
+      <Kiss fit={titleFit} stroke={STROKE} style={{ position: "absolute", left: 0, top: 0, width: W }} />
       <div
-        style={{ position: "absolute", left: 0, top: below, width: W, height: H - below, borderTop: `4px solid ${ink}`, background: ink, display: "flex", gap: 2, overflow: "hidden" }}
+        style={{ position: "absolute", left: 0, top: below, width: W, height: H - below, borderTop: `4px solid ${ink}`, background: ink, display: "flex", overflow: "hidden" }}
       >
         {columns.map((c, i) => (
-          <div key={i} style={{ width: c.w, height: h, flexShrink: 0, position: "relative", display: "flex", flexDirection: "column", background: paper }}>
-            {c.live && <Moire src={moireB} w={c.w} h={h} tint={magenta} />}
-            <Kiss fit={c.num} stroke={STROKE} style={{ width: c.w }} />
-            <div style={{ height: RULE, flexShrink: 0, background: ink }} />
-            {/* The handle reads bottom to top: laid out flat, then turned about its centre. */}
-            <div style={{ flexGrow: 1, position: "relative", display: "flex" }}>
-              <Kiss
-                fit={c.name}
-                style={{ position: "absolute", width: c.length, left: c.w / 2 - c.length / 2, top: c.length / 2 - c.w / 2, transform: "rotate(-90deg)" }}
-              />
-            </div>
+          // The handle reads bottom to top: laid out flat, then turned about its centre.
+          <div key={i} style={{ width: c.w, height: h, flexShrink: 0, position: "relative", display: "flex", background: c.bg, color: c.fg }}>
+            <Kiss fit={c.name} style={{ position: "absolute", width: h, left: c.w / 2 - h / 2, top: h / 2 - c.w / 2, transform: "rotate(-90deg)" }} />
           </div>
         ))}
       </div>

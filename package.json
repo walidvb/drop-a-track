@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest"
+    "test": "vitest",
+    "prototype": "PROTOTYPE_FIXTURES=1 DATABASE_URL=postgres://u:p@localhost/x NEXT_FONT_GOOGLE_MOCKED_RESPONSES=$PWD/app/prototype/font-mock.cjs next dev"
   },
   "dependencies": {
     "@cucu/media": "workspace:*",

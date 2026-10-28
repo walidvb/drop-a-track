@@ -4,7 +4,17 @@
     {
       "name": "dev",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev"],
+      "runtimeArgs": [
+        "dev"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "prototype",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "prototype"
+      ],
       "port": 3000
     }
   ]

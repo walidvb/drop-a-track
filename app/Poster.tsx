@@ -133,6 +133,9 @@ export function Poster({
             fontFamily: "var(--font-display)",
             letterSpacing: "-0.02em",
             whiteSpace: "nowrap",
+            // Its glyph box reaches up over How it works: let clicks through to the buttons, never select it.
+            pointerEvents: "none",
+            userSelect: "none",
           }}
         >
           DROP A
@@ -152,6 +155,8 @@ export function Poster({
           writingMode: "vertical-rl",
           fontFamily: "var(--font-display)",
           whiteSpace: "nowrap",
+          pointerEvents: "none",
+          userSelect: "none",
         }}
       >
         TRACK

@@ -99,10 +99,3 @@
   .shown .slide { opacity: 1; animation: slideDown 300ms cubic-bezier(.2, .8, .2, 1) var(--delay) backwards }
 }
 
-/* Into a bag, the column's content comes in from the right; back to the latest drops, from the left. */
-@keyframes columnIn { from { opacity: 0; translate: 24px 0 } to { opacity: 1; translate: 0 0 } }
-@keyframes columnBack { from { opacity: 0; translate: -24px 0 } to { opacity: 1; translate: 0 0 } }
-@media (prefers-reduced-motion: no-preference) {
-  .columnIn { animation: columnIn 280ms var(--ease-snap) backwards }
-  .columnBack { animation: columnBack 280ms var(--ease-snap) backwards }
-}

@@ -31,7 +31,7 @@ export default async function BagPage({ params }: PageProps<"/bags/[handle]">) {
   const uid = jar.get(UID_COOKIE)?.value;
   const [home, mine] = await Promise.all([loadHome(), isUid(uid) ? getDropIdsBy(uid) : ([] as string[])]);
   const pending = await pendingDrops(jar.getAll(), home.bags, mine);
-  if (!pending.some((o) => o.handle === bag.handle)) return <AllBags bags={home.bags} selected={bag.handle} />;
+  if (!pending.some((o) => o.handle === bag.handle)) return <AllBags bags={home.bags} selected={bag.handle} mine={mine} />;
 
   return (
     <BagApp

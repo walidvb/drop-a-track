@@ -1,173 +1,85 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type DragEvent, type InputHTMLAttributes, type MouseEvent } from "react";
-import { MediaEngine, usePlayerQueue } from "@cucu/media/react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { FocusScope } from "@radix-ui/react-focus-scope";
+import { Sheet } from "react-modal-sheet";
 import { Artwork } from "@/components/ds/Artwork";
-import { Player } from "@/components/ds/Player";
-import { TrackRow } from "@/components/ds/TrackRow";
-import { fmtTime } from "@/components/ds/types";
 import { Marquee } from "@/components/ds/Marquee";
+import { Player } from "@/components/ds/Player";
 import { FitText } from "@/components/FitText";
 import { padCount, padNumber, sourceCode } from "@/lib/format";
 import { bagPath, handleFromPath } from "@/lib/handle";
 import type { HomeBag, HomeTrack } from "@/lib/home";
-import { streamRefresher } from "@/lib/streams";
+import { shuffle } from "@/lib/shuffle";
+import { usePlayer } from "../PlayerProvider";
+import { NowPlaying, dragTrack, dropLine, placeIn, type QueueSpot } from "./NowPlaying";
 import styles from "./bags.module.css";
 
 /** A row of covers is at least this long: a short bag shows its empty slots. */
 const SLOTS = 12;
 
-/** What a track carries when it's dragged: its id. */
-const TRACK = "application/x-dat-track";
-
-/** "Dropped by Ellie, London · 2w ago" */
-const dropLine = (t: HomeTrack) => {
-  const who = t.droppedBy ? t.droppedBy + (t.droppedFrom ? ", " + t.droppedFrom : "") : null;
-  return [who && `Dropped by ${who}`, t.droppedAt].filter(Boolean).join(" · ");
-};
-
 const display = { fontFamily: "var(--font-display)", letterSpacing: "-0.02em", textTransform: "uppercase", whiteSpace: "nowrap" } as const;
 
 /**
- * Every open bag, one under the other: Play and its count, its covers (tap one to play it), and
- * its handle fitted edge to edge. Playing goes on bag after bag, or through all of them shuffled.
- * Beside the bags (on a phone, in a sheet opened from the bar at the bottom): what's playing and
- * its bag's tracks.
- * A bag's own page (/bags/mira.k) is this page, scrolled to that bag. Its covers are in colour, as are
- * the playing bag's and the one under the pointer; the rest are black and white.
+ * Every open bag, one under the other: Play and its count, its covers (one opens the bag: its
+ * tracks laid out in full), and its handle fitted edge to edge. Playing goes on bag after bag
+ * (then everything shuffled), or through all of them shuffled. Beside the bags (on a phone, in a
+ * sheet opened from the bar at the bottom): what's playing and what's next. The player itself
+ * lives in the layout, so it carries on across pages.
+ * A bag's own page (/bags/mira.k) is this page, that bag open; the drop flow shows it too, after
+ * a Skip or a drop. Its covers are in colour, as are the playing bag's and the one under the
+ * pointer; the rest are black and white.
  */
-export function AllBags({ bags: every, selected = null }: { bags: HomeBag[]; selected?: string | null }) {
-  /** Empty bags are left out: nothing to see or play yet. */
-  const bags = useMemo(() => every.filter((b) => b.tracks.length > 0), [every]);
+export function AllBags({
+  bags: withEmpty,
+  selected = null,
+  mine = [],
+  drop,
+}: {
+  bags: HomeBag[];
+  selected?: string | null;
+  /** Drops made from this browser: marked "Your drop". */
+  mine?: string[];
+  /** A drop still to make (a fresh scan): that bag offers to go back to the drop form. */
+  drop?: { handle: string; onDrop: () => void };
+}) {
+  /** Empty bags are left out (nothing to see or play yet), but for the one whose page this is. */
+  const bags = useMemo(() => withEmpty.filter((b) => b.tracks.length > 0 || b.handle === selected), [withEmpty, selected]);
   const all = useMemo(() => bags.flatMap((b) => b.tracks), [bags]);
-  /**
-   * What plays: what's on, then the tracks queued by hand (in the order they're put), then the rest
-   * of what it's playing from: every bag in order, on from the last track played from them (into
-   * the next bags, and round again), or every track shuffled. A track played from a bag plays on
-   * from there, its earlier tracks skipped; the queue stays through all of it.
-   */
-  const [from, setFrom] = useState(all);
-  const shuffled = from !== all;
-  const [fromAt, setFromAt] = useState(0);
-  const [queued, setQueued] = useState<HomeTrack[]>([]);
-  /** What played before, most recent last: Previous goes back through it. */
-  const [played, setPlayed] = useState<string[]>([]);
-  // The player only needs to find what's on: what comes next is decided here (advance, below).
-  const items = useMemo(() => all.map((t) => ({ id: t.id, media: t.media })), [all]);
-  const queue = usePlayerQueue(items, { refreshStream: streamRefresher(all) });
-  const nowId = queue.currentId;
-  const now = all.find((t) => t.id === nowId) ?? null;
-  const then = useMemo(() => {
-    const skip = new Set([nowId, ...queued.map((t) => t.id)]);
-    return [...from.slice(fromAt + 1), ...from.slice(0, fromAt + 1)].filter((t) => !skip.has(t.id));
-  }, [from, fromAt, nowId, queued]);
-  // The first track is cued (so its player loads early) but nothing counts as playing until a tap.
-  const [started, setStarted] = useState(false);
+  const player = usePlayer();
+  const now = player.now;
+  const bagOf = (t: HomeTrack) => bags.find((b) => b.handle === t.handle);
+  /** Once the last bag is done: everything, shuffled (a new order each time round). */
+  const afterBags = useMemo(() => ({ source: "shuffle", list: () => shuffle(all) }), [all]);
+
+  // Nothing on yet (a first visit): the first bag's first track, cued so its player loads early.
+  useEffect(() => player.cue(all, { source: "bags", then: afterBags }), [player, all, afterBags]);
+
+  /** A track played from a bag (or a bag's Play): on from there, bag after bag. */
+  const playNow = (t: HomeTrack) => (t.id === now?.id ? player.toggle() : player.playFrom(all, t, { source: "bags", then: afterBags }));
+  const shuffleAll = () => {
+    const s = shuffle(all);
+    // Start on something else than what's playing (re-selecting it would only reset its progress bar).
+    if (s.length > 1 && s[0].id === now?.id) [s[0], s[1]] = [s[1], s[0]];
+    player.playFrom(s, s[0], { source: "shuffle", then: afterBags });
+  };
+  const queueTrack = (id: string, to: QueueSpot) => {
+    const t = all.find((x) => x.id === id) ?? player.queued.find((x) => x.id === id);
+    if (t) player.enqueue(t, to === "end" ? null : to.before);
+  };
+
   const [sheet, setSheet] = useState(false);
-  const opener = useRef<HTMLButtonElement>(null);
+  const sheetClose = useRef<HTMLButtonElement>(null);
   /** The phone's player bar, measured: an open bag's handle sticks just above it. */
   const dock = useRef<HTMLDivElement>(null);
   const [dockH, setDockH] = useState(0);
   /** The open bag, its tracks laid out in full: the one whose page this is (from the URL). */
   const [picked, setPicked] = useState(selected);
-  const closeSheet = () => {
-    setSheet(false);
-    opener.current?.focus();
-  };
-
-  const cued = now;
-  const current = started ? cued : null;
-  const bagOf = (t: HomeTrack) => bags.find((b) => b.handle === t.handle)!;
-  /** "03/07": the track's number in its bag, oldest first, as its row in the list numbers it. */
-  const place = (t: HomeTrack) => {
-    const { tracks } = bagOf(t);
-    return `${padCount(tracks.length - tracks.indexOf(t))}/${padCount(tracks.length)}`;
-  };
-  const dur = queue.progress.duration || current?.duration || 0;
-  const pct = dur ? Math.min(100, (queue.progress.playedSeconds / dur) * 100) : 0;
 
   /**
-   * Puts `t` on; what was on joins what played before. A queued `t` leaves the queue; one that
-   * wasn't (or played from somewhere new, `nextFrom`) is the new place in what's playing from.
-   */
-  const go = (t: HomeTrack, nextFrom?: HomeTrack[]) => {
-    setStarted(true);
-    if (nowId) setPlayed((p) => [...p, nowId]);
-    const wasQueued = queued.some((x) => x.id === t.id);
-    if (wasQueued) setQueued((q) => q.filter((x) => x.id !== t.id));
-    if (nextFrom || !wasQueued) {
-      const f = nextFrom ?? from;
-      setFrom(f);
-      setFromAt(f.indexOf(t));
-    }
-    queue.select(t.id);
-  };
-  /** Next, and a track ending: the first queued, else the next of what it's playing from. */
-  const upNext = queued[0] ?? then[0];
-  const advance = () => (upNext ? go(upNext) : queue.toggle());
-  /** A track played from a bag (or a bag's Play): on from there, bag after bag. */
-  const playNow = (t: HomeTrack) => {
-    if (t.id === nowId) return toggle();
-    go(t, all);
-  };
-  /** Back to what played before; what was on comes back first in the queue. */
-  const previous = () => {
-    const id = played.at(-1);
-    if (!id) return;
-    setPlayed((p) => p.slice(0, -1));
-    if (now) setQueued((q) => [now, ...q.filter((t) => t.id !== now.id)]);
-    setStarted(true);
-    queue.select(id);
-  };
-  // Tracks that won't play are skipped, until every one has failed in a row: then it stops.
-  const failures = useRef(0);
-  const { onProgress } = queue.engineProps;
-  const engine = {
-    ...queue.engineProps,
-    onEnded: advance,
-    onError: () => {
-      failures.current += 1;
-      if (failures.current < all.length) return advance();
-      failures.current = 0;
-      if (nowId) queue.cue(nowId);
-    },
-    onProgress:
-      onProgress &&
-      ((p: Parameters<typeof onProgress>[0]) => {
-        failures.current = 0;
-        onProgress(p);
-      }),
-  };
-  /** A track (by id) into the queue before a queued one, or last; out of where it was if it's queued already. */
-  const enqueue = (id: string, to: "end" | { before: string }) => {
-    const t = all.find((x) => x.id === id);
-    if (!t || t.id === nowId) return;
-    setQueued((q) => {
-      const rest = q.filter((x) => x.id !== t.id);
-      const i = to === "end" ? rest.length : rest.findIndex((x) => x.id === to.before);
-      return [...rest.slice(0, i), t, ...rest.slice(i)];
-    });
-  };
-  const toggle = () => {
-    setStarted(true);
-    queue.toggle();
-  };
-  const shuffle = () => {
-    const s = [...all];
-    for (let i = s.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [s[i], s[j]] = [s[j], s[i]];
-    }
-    // Start on something else than what's playing (re-selecting it would only reset its progress bar).
-    if (s.length > 1 && s[0].id === nowId) [s[0], s[1]] = [s[1], s[0]];
-    go(s[0], s);
-  };
-
-  /**
-   * Opening a bag (null: closing it) is shallow navigation to its page, so the player keeps going:
-   * the URL changes, the page stays. Once it's laid out (the one open before has closed), it's
-   * scrolled to.
+   * Opening a bag (null: closing it) is shallow navigation to its page: the URL changes, the page
+   * stays. Once it's laid out (the one open before has closed), it's scrolled to.
    */
   const scrollToOpened = useRef(false);
   const openBag = (handle: string | null) => {
@@ -195,8 +107,8 @@ export function AllBags({ bags: every, selected = null }: { bags: HomeBag[]; sel
   // shortens the page for a moment and would pull an earlier scroll back up.
   useEffect(() => {
     if (!selected) return;
-    const go = () => document.getElementById(`bag-${selected}`)?.scrollIntoView();
-    document.fonts.ready.then(() => requestAnimationFrame(() => requestAnimationFrame(go)));
+    const scrollToSelected = () => document.getElementById(`bag-${selected}`)?.scrollIntoView();
+    document.fonts.ready.then(() => requestAnimationFrame(() => requestAnimationFrame(scrollToSelected)));
   }, [selected]);
   // Back and forward move between the bags opened here.
   useEffect(() => {
@@ -208,7 +120,16 @@ export function AllBags({ bags: every, selected = null }: { bags: HomeBag[]; sel
     document.title = picked ? `${picked}’s bag · drop-a-track` : "All bags · drop-a-track";
   }, [picked]);
 
-  const docked = current !== null;
+  // Escape closes the sheet (react-modal-sheet brings no keyboard handling). Caught on the way
+  // down, before a row's own key handlers can stop it.
+  useEffect(() => {
+    if (!sheet) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setSheet(false);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [sheet]);
+
+  const docked = player.started;
   useEffect(() => {
     const d = dock.current;
     if (!d) return setDockH(0);
@@ -217,38 +138,10 @@ export function AllBags({ bags: every, selected = null }: { bags: HomeBag[]; sel
     return () => ro.disconnect();
   }, [docked]);
 
-  useEffect(() => {
-    if (!sheet) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeSheet();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [sheet]);
-
-  const nowPlaying = (big: boolean) =>
-    cued && (
-      <NowPlaying
-        track={cued}
-        bag={bagOf(cued)}
-        place={place(cued)}
-        big={big}
-        started={started}
-        playing={started && queue.playing}
-        buffering={queue.buffering}
-        position={queue.progress.playedSeconds}
-        duration={dur}
-        seekInputProps={queue.seekInputProps}
-        onToggle={toggle}
-        onPrevious={played.length ? previous : undefined}
-        onNext={upNext ? advance : undefined}
-        queued={queued}
-        then={then}
-        shuffled={shuffled}
-        onPick={(t) => go(t)}
-        onQueue={enqueue}
-        onClear={() => setQueued([])}
-        linkTo={linkTo}
-      />
-    );
+  const current = player.started ? now : null;
+  const dur = player.progress.duration || current?.duration || 0;
+  const pct = dur ? Math.min(100, (player.progress.playedSeconds / dur) * 100) : 0;
+  const nowPlaying = (big: boolean) => <NowPlaying big={big} bagOf={bagOf} mine={mine} onQueue={queueTrack} linkTo={linkTo} />;
 
   return (
     <div className={styles.page} style={{ ["--dock-h" as string]: `${dockH}px` }}>
@@ -267,7 +160,7 @@ export function AllBags({ bags: every, selected = null }: { bags: HomeBag[]; sel
             {/* Outlined, so it never reads as one more bag. */}
             <FitText style={{ ...display, color: "transparent", WebkitTextStroke: "2px var(--ink)" }}>All bags</FitText>
           </h1>
-          <button type="button" className={styles.shuffle} onClick={shuffle} disabled={all.length === 0}>
+          <button type="button" className={styles.shuffle} onClick={shuffleAll} disabled={all.length === 0}>
             <span>Shuffle every bag</span>
             <span aria-hidden="true">▶︎</span>
           </button>
@@ -282,28 +175,47 @@ export function AllBags({ bags: every, selected = null }: { bags: HomeBag[]; sel
           return (
             <section key={b.bagId} id={`bag-${b.handle}`} className={`${styles.bag} ${tone} ${colour}`} aria-label={`${b.handle}’s bag`}>
               <div className={styles.meta}>
-                <button
-                  type="button"
-                  className={styles.metaButton}
-                  aria-label={`${here && queue.playing ? "Pause" : "Play"} ${b.handle}’s bag`}
-                  onClick={() => (here ? toggle() : playNow(b.tracks[0]))}
-                >
-                  {here ? `${queue.playing ? "❚❚" : "▶︎"} ${place(current!)}` : "▶︎ Play"}
-                </button>
+                {b.tracks.length > 0 ? (
+                  <button
+                    type="button"
+                    className={styles.metaButton}
+                    aria-label={`${here && player.playing ? "Pause" : "Play"} ${b.handle}’s bag`}
+                    onClick={() => (here ? player.toggle() : playNow(b.tracks[0]))}
+                  >
+                    {here ? `${player.playing ? "❚❚" : "▶︎"} ${placeIn(b, current!)}` : "▶︎ Play"}
+                  </button>
+                ) : (
+                  <span />
+                )}
                 <span>
-                  #{padNumber(b.number)} · {padCount(b.tracks.length)} tracks
+                  #{padNumber(b.number)} · {b.tracks.length ? `${padCount(b.tracks.length)} tracks` : "empty"}
                 </span>
               </div>
+              {drop?.handle === b.handle && (
+                <button
+                  type="button"
+                  className={styles.stillDrop}
+                  onClick={() => {
+                    if (player.playing) player.toggle(); // the player stays behind with the bag
+                    drop.onDrop();
+                  }}
+                >
+                  <span>Still want to drop?</span>
+                  <span>Drop yours →</span>
+                </button>
+              )}
               {open ? (
                 <div className={styles.grid} role="group" aria-label={`${b.handle}’s tracks`}>
+                  {b.tracks.length === 0 && <p className={styles.none}>Nothing in the bag yet. Be the first.</p>}
                   {b.tracks.map((t) => (
                     <Item
                       key={t.id}
                       track={t}
-                      now={t.id === cued?.id}
-                      playing={started && queue.playing}
+                      now={t.id === now?.id}
+                      playing={player.playing}
+                      mine={mine.includes(t.id)}
                       onPlay={() => playNow(t)}
-                      onQueue={() => enqueue(t.id, "end")}
+                      onQueue={() => player.enqueue(t)}
                     />
                   ))}
                 </div>
@@ -314,11 +226,10 @@ export function AllBags({ bags: every, selected = null }: { bags: HomeBag[]; sel
                   {Array.from({ length: Math.max(SLOTS, b.tracks.length) }, (_, k) => {
                     const t = b.tracks[k];
                     if (!t) return <span key={`empty-${k}`} className={styles.empty} />;
-                    const now = t.id === cued?.id;
                     return (
                       <button key={t.id} type="button" className={styles.cover} aria-label={`Open ${b.handle}’s bag`} onClick={() => openBag(b.handle)}>
                         <Artwork src={t.thumbnail} source={t.source} size="100%" mono={false} />
-                        {now && <span className={styles.coverNow}>{started && queue.playing ? "❚❚" : "▶︎"}</span>}
+                        {t.id === now?.id && <span className={styles.coverNow}>{player.playing ? "❚❚" : "▶︎"}</span>}
                       </button>
                     );
                   })}
@@ -326,9 +237,7 @@ export function AllBags({ bags: every, selected = null }: { bags: HomeBag[]; sel
               )}
               <h2 className={styles.name}>
                 <Link {...linkTo(open ? null : b.handle)} aria-expanded={open} className={styles.nameLink}>
-                  <FitText style={display}>
-                    {b.handle}
-                  </FitText>
+                  <FitText style={display}>{b.handle}</FitText>
                 </Link>
               </h2>
               {here && (
@@ -348,53 +257,56 @@ export function AllBags({ bags: every, selected = null }: { bags: HomeBag[]; sel
 
       {current && (
         <div ref={dock} className={styles.dock}>
-          <button ref={opener} type="button" className={styles.bar} aria-expanded={sheet} onClick={() => setSheet(true)}>
+          <button type="button" className={styles.bar} aria-expanded={sheet} onClick={() => setSheet(true)}>
             <span>
-              {current.handle}’s bag · {place(current)}
+              {current.handle}’s bag · {placeIn(bagOf(current), current)}
             </span>
             <span>▲ Queue</span>
           </button>
           <Player
             track={current}
-            playing={queue.playing}
-            buffering={queue.buffering}
-            position={queue.progress.playedSeconds}
-            duration={queue.progress.duration}
-            onToggle={toggle}
-            onNext={upNext ? advance : undefined}
-            seekInputProps={queue.seekInputProps}
+            playing={player.playing}
+            buffering={player.buffering}
+            position={player.progress.playedSeconds}
+            duration={player.progress.duration}
+            onToggle={player.toggle}
+            onNext={player.hasNext ? player.next : undefined}
+            seekInputProps={player.seekInputProps}
           />
         </div>
       )}
-      {sheet && current && (
-        <>
-          <div className={styles.backdrop} aria-hidden="true" onClick={closeSheet} />
-          <div role="dialog" aria-modal="true" aria-label="Now playing" className={styles.sheet}>
-            {/* Focus starts here, as in Modal, and goes back to the bar on close. */}
-            <button type="button" className={styles.bar} onClick={closeSheet} autoFocus>
-              <span>
-                {current.handle}’s bag · {place(current)}
-              </span>
-              <span>▼ Close</span>
-            </button>
-            {nowPlaying(false)}
-          </div>
-        </>
-      )}
-      {/* Mounted from the start, paused: the provider is loaded before the first tap (iOS only plays inside a gesture). */}
-      {items.length > 0 && <MediaEngine {...engine} />}
+      {/* Phones: the queue in a sheet that swipes down to close. Focus moves in once it's open (it
+          mounts mid-animation, too early to take it), stays in it, and goes back to the bar after;
+          Escape closes it too. */}
+      <Sheet isOpen={sheet && current !== null} onClose={() => setSheet(false)} onOpenEnd={() => sheetClose.current?.focus()}>
+        <Sheet.Container unstyled className={styles.sheet}>
+          <FocusScope asChild trapped loop>
+            <div role="dialog" aria-modal="true" aria-label="Queue" className={styles.sheetBody}>
+              <Sheet.Header unstyled>
+                <button ref={sheetClose} type="button" className={styles.bar} onClick={() => setSheet(false)}>
+                  <span>{current && `${current.handle}’s bag · ${placeIn(bagOf(current), current)}`}</span>
+                  <span>▼ Close</span>
+                </button>
+              </Sheet.Header>
+              <Sheet.Content>{nowPlaying(false)}</Sheet.Content>
+            </div>
+          </FocusScope>
+        </Sheet.Container>
+        <Sheet.Backdrop unstyled className={styles.backdrop} onTap={() => setSheet(false)} />
+      </Sheet>
     </div>
   );
 }
 
 /**
- * One track of an open bag: plays on click (on from there), drags onto the queue; on a touch screen,
- * where there's no dragging, "+ Queue" queues it last.
+ * One track of an open bag: plays on click (on from there), drags onto the queue; where there's no
+ * queue to drag onto, "+ Queue" queues it last (not on the track that's on: it's already playing).
  */
 function Item({
   track,
   now,
   playing,
+  mine,
   onPlay,
   onQueue,
 }: {
@@ -402,6 +314,7 @@ function Item({
   /** It's the player's track (playing, paused or only cued). */
   now: boolean;
   playing: boolean;
+  mine: boolean;
   onPlay: () => void;
   onQueue: () => void;
 }) {
@@ -411,13 +324,9 @@ function Item({
       tabIndex={0}
       aria-pressed={now}
       aria-label={`${now && playing ? "Pause" : "Play"} ${track.title} by ${track.artist}`}
-      className={styles.item}
+      className={`${styles.item} ${mine ? styles.mine : ""}`}
       data-marquee-host
-      draggable
-      onDragStart={(e) => {
-        e.dataTransfer.setData(TRACK, track.id);
-        e.dataTransfer.effectAllowed = "move";
-      }}
+      {...dragTrack(track)}
       onClick={onPlay}
       onKeyDown={(k) => {
         if (k.key === "Enter" || k.key === " ") {
@@ -431,6 +340,7 @@ function Item({
         {now && <span className={styles.coverNow}>{playing ? "❚❚" : "▶︎"}</span>}
       </span>
       <span className={styles.itemText}>
+        {mine && <span className={styles.yourDrop}>Your drop</span>}
         <Marquee on={now && playing} className={styles.itemTitle}>
           {track.title}
         </Marquee>
@@ -450,192 +360,20 @@ function Item({
             {sourceCode(track.source)} ↗
           </a>
         )}
-        <button
-          type="button"
-          className={styles.itemQueue}
-          onClick={(e) => {
-            e.stopPropagation();
-            onQueue();
-          }}
-          onKeyDown={(e) => e.stopPropagation()}
-        >
-          + Queue
-        </button>
-      </span>
-    </div>
-  );
-}
-
-/**
- * What's playing, its transport, and what's next: Queued (by hand: a track dragged from an open bag
- * drops in where it's let go, and the queued ones drag to reorder), then Then (the rest of what it's
- * playing from). Big: the cover full width (beside the bags).
- */
-function NowPlaying({
-  track,
-  bag,
-  place,
-  big,
-  started,
-  playing,
-  buffering,
-  position,
-  duration,
-  seekInputProps,
-  onToggle,
-  onPrevious,
-  onNext,
-  queued,
-  then,
-  shuffled,
-  onPick,
-  onQueue,
-  onClear,
-  linkTo,
-}: {
-  track: HomeTrack;
-  bag: HomeBag;
-  place: string;
-  big: boolean;
-  /** Nothing played yet: the track is only cued. */
-  started: boolean;
-  playing: boolean;
-  buffering: boolean;
-  position: number;
-  duration: number;
-  seekInputProps: InputHTMLAttributes<HTMLInputElement>;
-  onToggle: () => void;
-  onPrevious?: () => void;
-  onNext?: () => void;
-  queued: HomeTrack[];
-  then: HomeTrack[];
-  /** Then is every track shuffled (not bag after bag). */
-  shuffled: boolean;
-  onPick: (t: HomeTrack) => void;
-  /** A dragged track (by id), let go before a queued track or at the end of the queue. */
-  onQueue: (id: string, to: "end" | { before: string }) => void;
-  onClear: () => void;
-  /** A link to a bag that stays on this page. */
-  linkTo: (handle: string) => { href: string; onClick: (e: MouseEvent) => void };
-}) {
-  /** Where a dragged track would land: before this track (by id), or at the end. */
-  const [dropAt, setDropAt] = useState<string | null>(null);
-  const target = (to: "end" | { before: string }) => ({
-    onDragOver: (e: DragEvent) => {
-      if (!e.dataTransfer.types.includes(TRACK)) return;
-      e.preventDefault(); // allows the drop
-      setDropAt(to === "end" ? "end" : to.before);
-    },
-    onDrop: (e: DragEvent) => {
-      e.preventDefault();
-      setDropAt(null);
-      onQueue(e.dataTransfer.getData(TRACK), to);
-    },
-  });
-  const text = (
-    <div className={styles.npText}>
-      <span className={styles.npTitle}>{track.title}</span>
-      <span className={styles.npArtist}>{track.artist}</span>
-      <span className={styles.npBy}>
-        {dropLine(track)}
-        {track.url && (
-          <>
-            {" · "}
-            <a href={track.url} target="_blank" rel="noreferrer">
-              {track.source} ↗
-            </a>
-          </>
+        {!now && (
+          <button
+            type="button"
+            className={styles.itemQueue}
+            onClick={(e) => {
+              e.stopPropagation();
+              onQueue();
+            }}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            + Queue
+          </button>
         )}
       </span>
     </div>
-  );
-  return (
-    <>
-      <div className={styles.np}>
-        {big && (
-          <Link {...linkTo(bag.handle)} className={styles.npBag}>
-            <span>
-              {started ? "Now playing" : "Up first"} · {bag.handle}’s bag
-            </span>
-            <span>{place} →</span>
-          </Link>
-        )}
-        {big ? (
-          <>
-            <div style={{ aspectRatio: "1" }}>
-              <Artwork src={track.thumbnail} source={track.source} size="100%" mono={false} />
-            </div>
-            {text}
-          </>
-        ) : (
-          <div className={styles.npRow}>
-            <Artwork src={track.thumbnail} source={track.source} size={96} mono={false} />
-            {text}
-          </div>
-        )}
-        <div className={styles.npSeek}>
-          <span className={styles.npBar}>
-            <span style={{ width: `${duration ? Math.min(100, (position / duration) * 100) : 0}%` }} />
-            {duration ? <input aria-label="Seek" {...seekInputProps} /> : null}
-          </span>
-          <span className={styles.npTimes}>
-            <span>{buffering ? "Loading…" : fmtTime(position, true)}</span>
-            <span>{fmtTime(duration, true)}</span>
-          </span>
-        </div>
-        <div className={styles.npTransport}>
-          <button type="button" aria-label="Previous track" onClick={onPrevious} disabled={!onPrevious}>
-            ◀︎◀︎
-          </button>
-          <button type="button" aria-label={playing ? "Pause" : "Play"} onClick={onToggle}>
-            {playing ? "❚❚" : "▶︎"}
-          </button>
-          <button type="button" aria-label="Next track" onClick={onNext} disabled={!onNext}>
-            ▶︎▶︎
-          </button>
-        </div>
-      </div>
-      <div onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setDropAt(null)}>
-        <div className={styles.npListHead}>
-          <span>Queued · {padCount(queued.length)}</span>
-          {queued.length > 0 && (
-            <button type="button" className={styles.clear} onClick={onClear}>
-              Clear
-            </button>
-          )}
-        </div>
-        <ol className={styles.queue}>
-          {queued.map((t, i) => (
-            <li
-              key={t.id}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData(TRACK, t.id);
-                e.dataTransfer.effectAllowed = "move";
-              }}
-              className={dropAt === t.id ? styles.dropHere : undefined}
-              {...target({ before: t.id })}
-            >
-              <TrackRow track={t} index={i + 1} active={false} playing={false} ruled mono={false} onPlay={() => onPick(t)} />
-            </li>
-          ))}
-          <li className={`${styles.queueEnd} ${dropAt === "end" ? styles.dropHere : ""}`} {...target("end")}>
-            {queued.length ? "Drag here to queue last" : "Drag a track here to play it next"}
-          </li>
-        </ol>
-        <div className={styles.npListHead}>
-          <span>Then{shuffled ? " · shuffled" : ""}</span>
-          <span>{padCount(then.length)}</span>
-        </div>
-        {/* Let go over these: queued last. */}
-        <ol className={styles.queue} {...target("end")}>
-          {then.map((t, i) => (
-            <li key={t.id}>
-              <TrackRow track={t} index={queued.length + i + 1} active={false} playing={false} ruled mono={false} onPlay={() => onPick(t)} />
-            </li>
-          ))}
-        </ol>
-      </div>
-    </>
   );
 }

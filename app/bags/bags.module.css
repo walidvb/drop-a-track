@@ -63,6 +63,14 @@
 }
 .empty { box-shadow: inset 0 0 0 1px var(--gray-600) }
 
+/* After a Skip or a drop, the bag scanned offers the drop form again. */
+.stillDrop {
+  position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px;
+  border: 0; background: var(--magenta); color: var(--ink); cursor: pointer;
+  font-family: var(--font-heavy); font-size: 13px; letter-spacing: var(--tracking-caps); text-transform: uppercase;
+}
+.stillDrop:hover { background: var(--paper) }
+
 /* An open bag: its tracks in a grid, each cover beside its details, on the covers' dark strip
    (and above the handle's box, as the covers are). An item plays on click, drags onto the queue. */
 .grid {
@@ -74,6 +82,12 @@
   box-shadow: inset 0 0 0 1px var(--gray-800); transition: background var(--dur-fast) var(--ease-snap);
 }
 .item:hover, .item[aria-pressed="true"] { background: var(--magenta); color: var(--ink) }
+/* Dropped from this browser. */
+.mine { box-shadow: inset 4px 0 0 var(--magenta), inset 0 0 0 1px var(--gray-800) }
+.yourDrop {
+  align-self: flex-start; padding: 2px 6px; background: var(--magenta); color: var(--ink);
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: var(--tracking-caps); text-transform: uppercase;
+}
 .item:active { cursor: grabbing }
 .itemCover { position: relative; display: block; width: 88px; height: 88px }
 .itemText { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 3px }
@@ -117,9 +131,11 @@
   font-family: var(--font-mono); font-size: 11px; letter-spacing: var(--tracking-caps); text-transform: uppercase;
 }
 .bar:hover { color: var(--magenta) }
-.backdrop { position: fixed; inset: 0; z-index: 20; background: rgb(0 0 0 / 0.5) }
-.sheet { position: fixed; left: 0; right: 0; top: 72px; bottom: 0; z-index: 21; overflow-y: auto; background: var(--paper); border-top: 4px solid var(--magenta) }
-.sheet > .bar { position: sticky; top: 0; z-index: 1; min-height: 44px }
+/* The sheet (react-modal-sheet places it, drags it and scrolls its content): paper, magenta on top. */
+.backdrop { background: color-mix(in srgb, var(--ink) 50%, transparent) }
+.sheet { max-height: calc(100% - 72px); background: var(--paper); border-top: 4px solid var(--magenta) }
+.sheetBody { display: flex; flex-direction: column; height: 100% }
+.sheetBody .bar { min-height: 44px }
 
 /* Now playing */
 .np { display: flex; flex-direction: column; background: var(--ink); color: var(--paper) }
@@ -158,6 +174,10 @@
 }
 /* Up next: a dragged track lands before the row it's over (a magenta line there), or at the end. */
 .queue { margin: 0; padding: 0; list-style: none }
+.queueAfter {
+  padding: 16px 12px; color: var(--text-secondary);
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: var(--tracking-caps); text-transform: uppercase;
+}
 .clear { min-height: 36px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer }
 .clear:hover { color: var(--magenta) }
 .dropHere { box-shadow: inset 0 3px 0 var(--magenta) }

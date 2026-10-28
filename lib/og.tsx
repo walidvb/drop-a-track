@@ -23,23 +23,20 @@ const magenta = "#fd02ff";
 const display = "Shapiro Super Extd";
 const mono: CSSProperties = { fontFamily: "IBM Plex Mono", fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase" };
 
-const file = (path: string) => readFile(join(process.cwd(), path));
-
+// Every path spelled out, so the build traces just these files (a computed path traces the whole project).
 const FONTS = [
-  ["Shapiro Super Extd", "Shapiro-95-Super-Extd.otf", 900],
-  ["Shapiro Super Wide", "Shapiro-95-Super-Wide.otf", 900],
-  ["Shapiro Heavy", "Shapiro-85-Super-Heavy.otf", 800],
-  ["Archivo", "Archivo-Medium.ttf", 500],
-  ["Archivo", "Archivo-ExtraBold.ttf", 800],
-  ["IBM Plex Mono", "IBMPlexMono-Medium.ttf", 500],
+  ["Shapiro Super Extd", () => readFile(join(process.cwd(), "app/fonts/Shapiro-95-Super-Extd.otf")), 900],
+  ["Shapiro Super Wide", () => readFile(join(process.cwd(), "app/fonts/Shapiro-95-Super-Wide.otf")), 900],
+  ["Shapiro Heavy", () => readFile(join(process.cwd(), "app/fonts/Shapiro-85-Super-Heavy.otf")), 800],
+  ["Archivo", () => readFile(join(process.cwd(), "app/fonts/Archivo-Medium.ttf")), 500],
+  ["Archivo", () => readFile(join(process.cwd(), "app/fonts/Archivo-ExtraBold.ttf")), 800],
+  ["IBM Plex Mono", () => readFile(join(process.cwd(), "app/fonts/IBMPlexMono-Medium.ttf")), 500],
 ] as const;
 let fonts: Promise<{ name: string; data: Buffer; weight: 500 | 800 | 900 }[]> | undefined;
-const loadFonts = () =>
-  (fonts ??= Promise.all(FONTS.map(async ([name, path, weight]) => ({ name, data: await file(`app/fonts/${path}`), weight }))));
+const loadFonts = () => (fonts ??= Promise.all(FONTS.map(async ([name, read, weight]) => ({ name, data: await read(), weight }))));
 
 let extd: Promise<ReturnType<typeof parse>> | undefined;
-const loadExtd = () =>
-  (extd ??= file("app/fonts/Shapiro-95-Super-Extd.otf").then((b) => parse(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength))));
+const loadExtd = () => (extd ??= FONTS[0][1]().then((b) => parse(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength))));
 
 /** Shapiro's caps are .714em tall; at line-height 1 their tops sit .086em under the line box's. */
 const CAP = 0.714;
@@ -101,7 +98,11 @@ function Kiss({ fit, stroke = 0, color = ink, style }: { fit: Fit; stroke?: numb
 let textures: Promise<string[]> | undefined;
 /** Moiré A and B: black lines on white, as JPEGs (satori reads no WebP; built by scripts/build-textures.sh). */
 const loadTextures = () =>
-  (textures ??= Promise.all(["a", "b"].map(async (n) => `data:image/jpeg;base64,${(await file(`assets/og/ripples-${n}.jpg`)).toString("base64")}`)));
+  (textures ??= Promise.all(
+    [readFile(join(process.cwd(), "assets/og/ripples-a.jpg")), readFile(join(process.cwd(), "assets/og/ripples-b.jpg"))].map(
+      async (jpg) => `data:image/jpeg;base64,${(await jpg).toString("base64")}`,
+    ),
+  ));
 
 /**
  * A moiré ground, `w`×`h`: black lines on paper, or with `tint` the lines take the colour and the

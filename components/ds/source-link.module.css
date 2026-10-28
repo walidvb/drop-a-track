@@ -1,0 +1,5 @@
+/* ↗ at rest; the platform's code under the pointer, in the same width so nothing shifts. */
+.link { justify-content: center }
+.icon, .code { display: inline-block; min-width: 3ch; text-align: center }
+.code, .link:hover .icon, .link:focus-visible .icon { display: none }
+.link:hover .code, .link:focus-visible .code { display: inline-block }

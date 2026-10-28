@@ -17,19 +17,42 @@
   font-family: var(--font-mono); font-size: 11px; letter-spacing: var(--tracking-caps); text-transform: uppercase;
 }
 @media (min-width: 1000px) { .meta { padding: 0 16px; font-size: 12px } }
-.top { position: sticky; top: 0; z-index: 2; background: var(--paper); color: var(--ink) }
+.top { position: sticky; top: 0; z-index: 2; border-bottom: var(--rule); background: var(--paper); color: var(--ink) }
 .link { display: flex; align-items: center; min-height: 44px; color: inherit; text-decoration: none }
 .link:hover { color: var(--magenta) }
 
 .head { display: flex; flex-direction: column; border-bottom: 4px solid var(--ink) }
 /* The outline's 2px stroke is centred on the letters' edge: 1px of room on every side, so the
    stroke itself kisses the bar above and the line below. */
-.title { margin: 0; padding: 1px; font-weight: normal }
+.title { margin: -2px 0 0; padding: 1px; font-weight: normal } /* and up 2px: its top edge sinks into the bar's rule */
+/* Shuffle and the search beside it: opened, the field grows over the bar (Shuffle folds away). */
+/* An exception to the kiss: pulled up 2px, so its rule overlaps the outline's bottom edge instead of
+   just touching it. */
+.tools { display: flex; height: 48px; margin-top: -2px; border-top: 2px solid var(--ink) }
 .shuffle {
-  display: flex; justify-content: space-between; align-items: center; height: 48px; padding: 0 12px;
-  border: 0; border-top: 2px solid var(--ink); background: var(--paper); color: var(--ink); cursor: pointer;
+  flex: 1 1 0; min-width: 0; overflow: hidden; white-space: nowrap;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px; height: 100%; padding: 0 12px;
+  border: 0; background: var(--paper); color: var(--ink); cursor: pointer;
   font-family: var(--font-heavy); font-size: 14px; letter-spacing: var(--tracking-caps); text-transform: uppercase;
+  transition: flex-grow 300ms var(--ease-out), padding 300ms var(--ease-out);
 }
+.search { flex: 0 1 auto; min-width: 0; display: flex; border-left: 2px solid var(--ink); transition: flex-grow 300ms var(--ease-out) }
+.search input {
+  width: 0; min-width: 0; flex: 1 1 auto; padding: 0; border: 0; outline: 0; background: var(--paper); color: var(--ink);
+  font-family: var(--font-mono); font-size: 14px; letter-spacing: var(--tracking-mono);
+  transition: padding 300ms var(--ease-out);
+}
+.search input::placeholder { color: var(--text-secondary) }
+.search input::-webkit-search-cancel-button { display: none }
+.searchButton {
+  flex: 0 0 48px; display: flex; align-items: center; justify-content: center; border: 0; background: var(--paper); color: var(--ink); cursor: pointer;
+  font-size: 16px;
+}
+.searchButton:hover { background: var(--ink); color: var(--paper) }
+.searching .shuffle { flex-grow: 0; padding: 0 }
+.searching .search { flex-grow: 1; border-left: 0 }
+.searching .search input { padding: 0 12px }
+.searching .search:focus-within { box-shadow: inset 0 -3px 0 var(--magenta) }
 .shuffle:hover:not(:disabled) { background: var(--ink); color: var(--paper) }
 .shuffle:disabled { opacity: 0.35; cursor: default }
 .none { margin: 0; padding: 32px 12px; font-family: var(--font-mono); font-size: 13px; color: var(--text-secondary) }
@@ -37,7 +60,7 @@
 /* One bag: dark every other row, magenta behind it while it plays or under the pointer (its text
    keeps its colour). Clipped, so the handle's bleed stays inside; scrolled to below the bar at the top. */
 .bag {
-  container-type: inline-size; overflow: clip; display: flex; flex-direction: column; scroll-margin-top: 44px;
+  container-type: inline-size; overflow: clip; display: flex; flex-direction: column; scroll-margin-top: 46px; /* the bar at the top, its rule included */
   border-bottom: 2px solid var(--ink); background: var(--paper); color: var(--ink);
 }
 .dark { background: var(--ink); color: var(--paper) }

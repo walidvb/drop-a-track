@@ -1,8 +1,8 @@
 "use client";
 
-import { sourceCode } from "@/lib/format";
 import { Artwork } from "./Artwork";
 import { Marquee } from "./Marquee";
+import { SourceLink } from "./SourceLink";
 import { ellipsis, monoCaps } from "./styles";
 import styles from "./track-row.module.css";
 import type { TrackView } from "./types";
@@ -68,19 +68,15 @@ export function TrackRow({
         <span style={{ ...ellipsis, fontWeight: 700, fontSize: 13 }}>{track.artist}</span>
         <span style={{ ...ellipsis, fontFamily: "var(--font-mono)", fontSize: 11 }}>{[who, track.droppedAt].filter(Boolean).join(" · ")}</span>
       </div>
-      <a
-        href={track.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={`Open on ${track.source}`}
+      <SourceLink
+        url={track.url}
+        source={track.source}
         className={styles.src}
         // The row plays on click and Enter: the link must only open the original.
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
         style={{ borderLeft: ruled ? "1px solid currentColor" : 0 }}
-      >
-        {sourceCode(track.source)} ↗
-      </a>
+      />
     </div>
   );
 }

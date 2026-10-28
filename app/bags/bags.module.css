@@ -49,7 +49,8 @@
    box (pulled up to its cap height) so the covers keep their taps. */
 .covers { --slot: calc(100cqw / 6.5); position: relative; z-index: 1; display: flex; background: var(--ink); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none }
 .covers::-webkit-scrollbar { display: none }
-@media (hover: hover) { .covers { scrollbar-width: thin } }
+/* With a mouse the row glides from its ends (useEdgeScroll): no snapping, which would fight it. */
+@media (hover: hover) { .covers { scrollbar-width: thin; scroll-snap-type: none } }
 @container (min-width: 780px) { .covers { --slot: calc(100cqw / 12) } }
 .cover, .empty { position: relative; flex: 0 0 var(--slot); height: var(--slot); scroll-snap-align: start }
 .cover { padding: 0; border: 0; background: none; cursor: pointer }

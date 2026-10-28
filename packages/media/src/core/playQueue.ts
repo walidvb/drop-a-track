@@ -83,6 +83,20 @@ export function cue<T extends { id: string }>(s: PlayQueueState<T>, list: T[], o
 }
 
 /**
+ * What's next now comes from `list`, starting at `at`, without touching what's on (or what's
+ * queued): the rest follows what's being looked at. When nothing's on yet, `list[at]` is cued.
+ */
+export function follow<T extends { id: string }>(
+  s: PlayQueueState<T>,
+  list: T[],
+  at: number,
+  { source = null, then = null }: { source?: string | null; then?: PlayQueueThen<T> | null } = {},
+): PlayQueueState<T> {
+  if (!s.now) return list[at] ? playFrom(s, list, list[at], { heard: false, start: false, source, then }) : s;
+  return { ...s, from: list, source, fromAt: at - 1, then, ahead: [], skip: [] };
+}
+
+/**
  * Play `t`, already in the queue, the tracks gone back from or the rest: a queued one leaves the
  * queue (and won't play again from the source); one further on skips what's in between.
  */

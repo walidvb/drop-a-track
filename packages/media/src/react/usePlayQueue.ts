@@ -14,6 +14,7 @@ import {
   cue as cueIn,
   emptyPlayQueue,
   enqueue as enqueueIn,
+  follow as followIn,
   jump,
   playFrom as playFromIn,
   previous as previousIn,
@@ -66,6 +67,12 @@ export function usePlayQueue<T extends QueueItem>({ refreshStream }: PlayQueueOp
   /** Cue the first of `list` (loaded, not started) when nothing is on yet. */
   const cue = (list: T[], { source, then }: PlayFrom<T> = {}) => {
     if (!s.now) commit(cueIn(s, list, { source: source ?? null, then: then ?? null }), false);
+  };
+  /** What's next comes from `list`, from `at` on (nothing on yet: `list[at]` is cued). */
+  const follow = (list: T[], at: number, { source, then }: PlayFrom<T> = {}) => {
+    const n = followIn(s, list, at, { source: source ?? null, then: then ?? null });
+    if (s.now) setS(n);
+    else commit(n, false);
   };
   /** A track already in Queued or the rest: on to it. */
   const play = (t: T) => commit(jump(s, t, move()));
@@ -128,6 +135,7 @@ export function usePlayQueue<T extends QueueItem>({ refreshStream }: PlayQueueOp
     engineProps,
     playFrom,
     cue,
+    follow,
     play,
     toggle,
     next,

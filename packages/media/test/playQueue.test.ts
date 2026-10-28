@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { advance, clearQueue, cue, emptyPlayQueue, enqueue, jump, playFrom, previous, rest, upNext, type PlayQueueState } from "../src/core";
+import { advance, clearQueue, cue, emptyPlayQueue, enqueue, follow, jump, playFrom, previous, rest, upNext, type PlayQueueState } from "../src/core";
 
 type T = { id: string };
 const tracks = (ids: string) => ids.split("").map((id) => ({ id }));
@@ -93,6 +93,19 @@ describe("play queue", () => {
     s = advance(s, heard)!;
     expect([on(s), s.source, ids(rest(s))]).toEqual(["Z", "shuffle", "YX"]);
     expect(advance(playFrom(emptyPlayQueue<T>(), all, E, heard), heard)).toBeNull();
+  });
+
+  it("follows what's looked at for what's next, without touching what's on or queued", () => {
+    let s = playFrom(emptyPlayQueue<T>(), all, A, heard);
+    s = enqueue(s, E);
+    s = follow(s, all, 2); // from C
+    expect([on(s), s.started, ids(s.queued), ids(rest(s))]).toEqual(["A", true, "E", "CD"]);
+    expect(on(advance(advance(s, heard)!, heard))).toBe("C");
+  });
+
+  it("cues what it follows when nothing's on yet", () => {
+    const s = follow(emptyPlayQueue<T>(), all, 3);
+    expect([on(s), s.started, ids(rest(s))]).toEqual(["D", false, "E"]);
   });
 
   it("skips past tracks further down, and clears the queue", () => {

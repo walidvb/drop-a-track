@@ -11,7 +11,7 @@ import { uploadPathname } from "@/lib/audio-file";
 import { SOURCE_LABEL } from "@/lib/format";
 import type { HomeBag, HomeTrack } from "@/lib/home";
 import { UID_STORAGE_KEY, isUid, newUid } from "@/lib/uid";
-import { Browse } from "../Browse";
+import { AllBags } from "../AllBags";
 import bagStyles from "./bag.module.css";
 import { DropForm, type Owner, type PickedAudio } from "./DropForm";
 import { DropSuccess } from "./DropSuccess";
@@ -78,7 +78,7 @@ function draftFrom(info: MediaInfo, droppedBy: string): DropDraft {
 /**
  * The drop flow, for a fresh scan (the page checked the ticket, and that this browser's
  * cookie hasn't dropped here): drop form → preview → success. After a Skip or the drop,
- * the bag itself is the home view (Browse) with this bag open.
+ * the bag's page: All bags with this bag open.
  */
 export function BagApp({
   owner,
@@ -278,13 +278,7 @@ export function BagApp({
       window.scrollTo(0, 0);
     };
     return (
-      <Browse
-        {...data}
-        initialView={owner.handle}
-        mine={myDrops}
-        drop={canDrop ? { handle: owner.handle, onDrop: backToDrop } : undefined}
-        pendingDrops={stillPending.length + (canDrop ? 1 : 0)}
-      />
+      <AllBags bags={data.bags} selected={owner.handle} mine={myDrops} drop={canDrop ? { handle: owner.handle, onDrop: backToDrop } : undefined} />
     );
   }
 

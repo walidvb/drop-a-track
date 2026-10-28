@@ -9,10 +9,11 @@ describe("handles", () => {
     expect(parseHandle("x".repeat(31))).toBeNull();
   });
 
-  it("refuse the app's own paths", () => {
-    expect(parseHandle("admin")).toBeNull();
-    expect(parseHandle("S")).toBeNull();
-    expect(parseHandle("manage")).toBeNull();
+  it("refuse only bags: every other app path is clear of /bags/…", () => {
+    expect(parseHandle("bags")).toBeNull();
+    expect(parseHandle("Bags")).toBeNull();
+    expect(parseHandle("admin")).toBe("admin");
+    expect(parseHandle("manage")).toBe("manage");
   });
 
   it("read slugs, old @ links and encodings included", () => {
@@ -20,6 +21,6 @@ describe("handles", () => {
     expect(handleFromSlug("@mira.k")).toBe("mira.k");
     expect(handleFromSlug("%40mira.k")).toBe("mira.k");
     expect(handleFromSlug("mira%")).toBeNull();
-    expect(bagPath("mira.k")).toBe("/mira.k");
+    expect(bagPath("mira.k")).toBe("/bags/mira.k");
   });
 });

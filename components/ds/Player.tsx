@@ -2,6 +2,7 @@
 
 import { useState, type InputHTMLAttributes } from "react";
 import { Artwork } from "./Artwork";
+import { Marquee } from "./Marquee";
 import { fmtTime, type TrackView } from "./types";
 
 const G = { play: "▶︎", pause: "❚❚", next: "▶︎▶︎" };
@@ -68,6 +69,7 @@ export function Player({
   const pct = dur ? Math.min(100, (position / dur) * 100) : 0;
   return (
     <div
+      data-marquee-host
       style={{
         background: "var(--ink)",
         color: "var(--paper)",
@@ -81,19 +83,9 @@ export function Player({
     >
       <Artwork src={track?.thumbnail} source={track?.source} size={44} />
       <div style={{ display: "flex", flexDirection: "column", gap: "4px", minWidth: 0 }}>
-        <span
-          style={{
-            fontFamily: "var(--font-display-wide)",
-            fontSize: "14px",
-            lineHeight: 1.05,
-            textTransform: "uppercase",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
+        <Marquee on={playing} style={{ fontFamily: "var(--font-display-wide)", fontSize: "14px", lineHeight: 1.05, textTransform: "uppercase" }}>
           {track?.title || "Nothing playing"}
-        </span>
+        </Marquee>
         <span
           style={{
             display: "flex",

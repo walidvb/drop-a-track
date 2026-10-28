@@ -1,0 +1,379 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { FocusScope } from "@radix-ui/react-focus-scope";
+import { Sheet } from "react-modal-sheet";
+import { Artwork } from "@/components/ds/Artwork";
+import { Marquee } from "@/components/ds/Marquee";
+import { Player } from "@/components/ds/Player";
+import { FitText } from "@/components/FitText";
+import { padCount, padNumber, sourceCode } from "@/lib/format";
+import { bagPath, handleFromPath } from "@/lib/handle";
+import type { HomeBag, HomeTrack } from "@/lib/home";
+import { shuffle } from "@/lib/shuffle";
+import { usePlayer } from "../PlayerProvider";
+import { NowPlaying, dragTrack, dropLine, placeIn, type QueueSpot } from "./NowPlaying";
+import styles from "./bags.module.css";
+
+/** A row of covers is at least this long: a short bag shows its empty slots. */
+const SLOTS = 12;
+
+const display = { fontFamily: "var(--font-display)", letterSpacing: "-0.02em", textTransform: "uppercase", whiteSpace: "nowrap" } as const;
+
+/**
+ * Every open bag, one under the other: Play and its count, its covers (one opens the bag: its
+ * tracks laid out in full), and its handle fitted edge to edge. Playing goes on bag after bag
+ * (then everything shuffled), or through all of them shuffled. Beside the bags (on a phone, in a
+ * sheet opened from the bar at the bottom): what's playing and what's next. The player itself
+ * lives in the layout, so it carries on across pages.
+ * A bag's own page (/bags/mira.k) is this page, that bag open; the drop flow shows it too, after
+ * a Skip or a drop. Its covers are in colour, as are the playing bag's and the one under the
+ * pointer; the rest are black and white.
+ */
+export function AllBags({
+  bags: withEmpty,
+  selected = null,
+  mine = [],
+  drop,
+}: {
+  bags: HomeBag[];
+  selected?: string | null;
+  /** Drops made from this browser: marked "Your drop". */
+  mine?: string[];
+  /** A drop still to make (a fresh scan): that bag offers to go back to the drop form. */
+  drop?: { handle: string; onDrop: () => void };
+}) {
+  /** Empty bags are left out (nothing to see or play yet), but for the one whose page this is. */
+  const bags = useMemo(() => withEmpty.filter((b) => b.tracks.length > 0 || b.handle === selected), [withEmpty, selected]);
+  const all = useMemo(() => bags.flatMap((b) => b.tracks), [bags]);
+  const player = usePlayer();
+  const now = player.now;
+  const bagOf = (t: HomeTrack) => bags.find((b) => b.handle === t.handle);
+  /** Once the last bag is done: everything, shuffled (a new order each time round). */
+  const afterBags = useMemo(() => ({ source: "shuffle", list: () => shuffle(all) }), [all]);
+
+  // Nothing on yet (a first visit): the first bag's first track, cued so its player loads early.
+  useEffect(() => player.cue(all, { source: "bags", then: afterBags }), [player, all, afterBags]);
+
+  /** A track played from a bag (or a bag's Play): on from there, bag after bag. */
+  const playNow = (t: HomeTrack) => (t.id === now?.id ? player.toggle() : player.playFrom(all, t, { source: "bags", then: afterBags }));
+  const shuffleAll = () => {
+    const s = shuffle(all);
+    // Start on something else than what's playing (re-selecting it would only reset its progress bar).
+    if (s.length > 1 && s[0].id === now?.id) [s[0], s[1]] = [s[1], s[0]];
+    player.playFrom(s, s[0], { source: "shuffle", then: afterBags });
+  };
+  const queueTrack = (id: string, to: QueueSpot) => {
+    const t = all.find((x) => x.id === id) ?? player.queued.find((x) => x.id === id);
+    if (t) player.enqueue(t, to === "end" ? null : to.before);
+  };
+
+  const [sheet, setSheet] = useState(false);
+  const sheetClose = useRef<HTMLButtonElement>(null);
+  /** The phone's player bar, measured: an open bag's handle sticks just above it. */
+  const dock = useRef<HTMLDivElement>(null);
+  const [dockH, setDockH] = useState(0);
+  /** The open bag, its tracks laid out in full: the one whose page this is (from the URL). */
+  const [picked, setPicked] = useState(selected);
+
+  /**
+   * Opening a bag (null: closing it) is shallow navigation to its page: the URL changes, the page
+   * stays. Once it's laid out (the one open before has closed), it's scrolled to.
+   */
+  const scrollToOpened = useRef(false);
+  const openBag = (handle: string | null) => {
+    setPicked(handle);
+    const path = handle ? bagPath(handle) : "/bags";
+    if (location.pathname !== path) history.pushState(null, "", path);
+    scrollToOpened.current = handle !== null;
+  };
+  useEffect(() => {
+    if (!picked || !scrollToOpened.current) return;
+    scrollToOpened.current = false;
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document.getElementById(`bag-${picked}`)?.scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
+  }, [picked]);
+  const linkTo = (handle: string | null) => ({
+    href: handle ? bagPath(handle) : "/bags",
+    onClick: (e: MouseEvent) => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey) return; // a new tab or window: let it go
+      e.preventDefault();
+      openBag(handle);
+    },
+  });
+  // Arriving on a bag's page: straight to it, once the handles above are fitted. Each FitText
+  // measures at 100px (fonts loaded, then its first resize callback, a frame later), which
+  // shortens the page for a moment and would pull an earlier scroll back up.
+  useEffect(() => {
+    if (!selected) return;
+    const scrollToSelected = () => document.getElementById(`bag-${selected}`)?.scrollIntoView();
+    document.fonts.ready.then(() => requestAnimationFrame(() => requestAnimationFrame(scrollToSelected)));
+  }, [selected]);
+  // Back and forward move between the bags opened here.
+  useEffect(() => {
+    const onPop = () => setPicked(handleFromPath(location.pathname));
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+  useEffect(() => {
+    document.title = picked ? `${picked}’s bag · drop-a-track` : "All bags · drop-a-track";
+  }, [picked]);
+
+  // Escape closes the sheet (react-modal-sheet brings no keyboard handling). Caught on the way
+  // down, before a row's own key handlers can stop it.
+  useEffect(() => {
+    if (!sheet) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setSheet(false);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [sheet]);
+
+  const docked = player.started;
+  useEffect(() => {
+    const d = dock.current;
+    if (!d) return setDockH(0);
+    const ro = new ResizeObserver(() => setDockH(d.offsetHeight));
+    ro.observe(d);
+    return () => ro.disconnect();
+  }, [docked]);
+
+  const current = player.started ? now : null;
+  const dur = player.progress.duration || current?.duration || 0;
+  const pct = dur ? Math.min(100, (player.progress.playedSeconds / dur) * 100) : 0;
+  const nowPlaying = (big: boolean) => <NowPlaying big={big} bagOf={bagOf} mine={mine} onQueue={queueTrack} linkTo={linkTo} />;
+
+  return (
+    <div className={styles.page} style={{ ["--dock-h" as string]: `${dockH}px` }}>
+      <main className={styles.main}>
+        {/* Stays at the top of the screen: the way home, and how much there is. */}
+        <div className={`${styles.meta} ${styles.top}`}>
+          <Link href="/" className={styles.link}>
+            ← D.A.T
+          </Link>
+          <span>
+            {bags.length} bags · {all.length} tracks
+          </span>
+        </div>
+        <header className={styles.head}>
+          <h1 className={styles.title}>
+            {/* Outlined, so it never reads as one more bag. */}
+            <FitText style={{ ...display, color: "transparent", WebkitTextStroke: "2px var(--ink)" }}>All bags</FitText>
+          </h1>
+          <button type="button" className={styles.shuffle} onClick={shuffleAll} disabled={all.length === 0}>
+            <span>Shuffle every bag</span>
+            <span aria-hidden="true">▶︎</span>
+          </button>
+        </header>
+
+        {bags.length === 0 && <p className={styles.none}>No bags yet.</p>}
+        {bags.map((b, i) => {
+          const here = current?.handle === b.handle;
+          const tone = `${i % 2 === 0 ? styles.dark : ""} ${here ? styles.playing : ""}`;
+          const open = b.handle === picked;
+          const colour = `${here || open ? styles.selected : ""} ${open ? styles.open : ""}`;
+          return (
+            <section key={b.bagId} id={`bag-${b.handle}`} className={`${styles.bag} ${tone} ${colour}`} aria-label={`${b.handle}’s bag`}>
+              <div className={styles.meta}>
+                {b.tracks.length > 0 ? (
+                  <button
+                    type="button"
+                    className={styles.metaButton}
+                    aria-label={`${here && player.playing ? "Pause" : "Play"} ${b.handle}’s bag`}
+                    onClick={() => (here ? player.toggle() : playNow(b.tracks[0]))}
+                  >
+                    {here ? `${player.playing ? "❚❚" : "▶︎"} ${placeIn(b, current!)}` : "▶︎ Play"}
+                  </button>
+                ) : (
+                  <span />
+                )}
+                <span>
+                  #{padNumber(b.number)} · {b.tracks.length ? `${padCount(b.tracks.length)} tracks` : "empty"}
+                </span>
+              </div>
+              {drop?.handle === b.handle && (
+                <button
+                  type="button"
+                  className={styles.stillDrop}
+                  onClick={() => {
+                    if (player.playing) player.toggle(); // the player stays behind with the bag
+                    drop.onDrop();
+                  }}
+                >
+                  <span>Still want to drop?</span>
+                  <span>Drop yours →</span>
+                </button>
+              )}
+              {open ? (
+                <div className={styles.grid} role="group" aria-label={`${b.handle}’s tracks`}>
+                  {b.tracks.length === 0 && <p className={styles.none}>Nothing in the bag yet. Be the first.</p>}
+                  {b.tracks.map((t) => (
+                    <Item
+                      key={t.id}
+                      track={t}
+                      now={t.id === now?.id}
+                      playing={player.playing}
+                      mine={mine.includes(t.id)}
+                      onPlay={() => playNow(t)}
+                      onQueue={() => player.enqueue(t)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                // Scrolls sideways once there's more than fits; a cut-off cover at the edge says so.
+                // A cover opens the bag.
+                <div className={styles.covers}>
+                  {Array.from({ length: Math.max(SLOTS, b.tracks.length) }, (_, k) => {
+                    const t = b.tracks[k];
+                    if (!t) return <span key={`empty-${k}`} className={styles.empty} />;
+                    return (
+                      <button key={t.id} type="button" className={styles.cover} aria-label={`Open ${b.handle}’s bag`} onClick={() => openBag(b.handle)}>
+                        <Artwork src={t.thumbnail} source={t.source} size="100%" mono={false} />
+                        {t.id === now?.id && <span className={styles.coverNow}>{player.playing ? "❚❚" : "▶︎"}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              <h2 className={styles.name}>
+                <Link {...linkTo(open ? null : b.handle)} aria-expanded={open} className={styles.nameLink}>
+                  <FitText style={display}>{b.handle}</FitText>
+                </Link>
+              </h2>
+              {here && (
+                <span className={styles.progress}>
+                  <span style={{ width: `${pct}%` }} />
+                </span>
+              )}
+            </section>
+          );
+        })}
+        {current && <div className={styles.dockSpace} />}
+      </main>
+
+      <aside className={styles.aside} aria-label="Now playing">
+        {nowPlaying(true)}
+      </aside>
+
+      {current && (
+        <div ref={dock} className={styles.dock}>
+          <button type="button" className={styles.bar} aria-expanded={sheet} onClick={() => setSheet(true)}>
+            <span>
+              {current.handle}’s bag · {placeIn(bagOf(current), current)}
+            </span>
+            <span>▲ Queue</span>
+          </button>
+          <Player
+            track={current}
+            playing={player.playing}
+            buffering={player.buffering}
+            position={player.progress.playedSeconds}
+            duration={player.progress.duration}
+            onToggle={player.toggle}
+            onNext={player.hasNext ? player.next : undefined}
+            seekInputProps={player.seekInputProps}
+          />
+        </div>
+      )}
+      {/* Phones: the queue in a sheet that swipes down to close. Focus moves in once it's open (it
+          mounts mid-animation, too early to take it), stays in it, and goes back to the bar after;
+          Escape closes it too. */}
+      <Sheet isOpen={sheet && current !== null} onClose={() => setSheet(false)} onOpenEnd={() => sheetClose.current?.focus()}>
+        <Sheet.Container unstyled className={styles.sheet}>
+          <FocusScope asChild trapped loop>
+            <div role="dialog" aria-modal="true" aria-label="Queue" className={styles.sheetBody}>
+              <Sheet.Header unstyled>
+                <button ref={sheetClose} type="button" className={styles.bar} onClick={() => setSheet(false)}>
+                  <span>{current && `${current.handle}’s bag · ${placeIn(bagOf(current), current)}`}</span>
+                  <span>▼ Close</span>
+                </button>
+              </Sheet.Header>
+              <Sheet.Content>{nowPlaying(false)}</Sheet.Content>
+            </div>
+          </FocusScope>
+        </Sheet.Container>
+        <Sheet.Backdrop unstyled className={styles.backdrop} onTap={() => setSheet(false)} />
+      </Sheet>
+    </div>
+  );
+}
+
+/**
+ * One track of an open bag: plays on click (on from there), drags onto the queue; where there's no
+ * queue to drag onto, "+ Queue" queues it last (not on the track that's on: it's already playing).
+ */
+function Item({
+  track,
+  now,
+  playing,
+  mine,
+  onPlay,
+  onQueue,
+}: {
+  track: HomeTrack;
+  /** It's the player's track (playing, paused or only cued). */
+  now: boolean;
+  playing: boolean;
+  mine: boolean;
+  onPlay: () => void;
+  onQueue: () => void;
+}) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={now}
+      aria-label={`${now && playing ? "Pause" : "Play"} ${track.title} by ${track.artist}`}
+      className={`${styles.item} ${mine ? styles.mine : ""}`}
+      data-marquee-host
+      {...dragTrack(track)}
+      onClick={onPlay}
+      onKeyDown={(k) => {
+        if (k.key === "Enter" || k.key === " ") {
+          k.preventDefault();
+          onPlay();
+        }
+      }}
+    >
+      <span className={styles.itemCover}>
+        <Artwork src={track.thumbnail} source={track.source} size="100%" mono={false} />
+        {now && <span className={styles.coverNow}>{playing ? "❚❚" : "▶︎"}</span>}
+      </span>
+      <span className={styles.itemText}>
+        {mine && <span className={styles.yourDrop}>Your drop</span>}
+        <Marquee on={now && playing} className={styles.itemTitle}>
+          {track.title}
+        </Marquee>
+        <span className={styles.itemArtist}>{track.artist}</span>
+        <span className={styles.itemBy}>{dropLine(track)}</span>
+        {track.url && (
+          <a
+            href={track.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            draggable={false}
+            className={styles.itemSrc}
+            // The item plays on click and Enter: the link must only open the original.
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            {sourceCode(track.source)} ↗
+          </a>
+        )}
+        {!now && (
+          <button
+            type="button"
+            className={styles.itemQueue}
+            onClick={(e) => {
+              e.stopPropagation();
+              onQueue();
+            }}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            + Queue
+          </button>
+        )}
+      </span>
+    </div>
+  );
+}

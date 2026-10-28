@@ -11,5 +11,5 @@ export default async function Home() {
   const uid = jar.get(UID_COOKIE)?.value;
   const [home, mine] = await Promise.all([loadHome(), isUid(uid) ? getDropIdsBy(uid) : ([] as string[])]);
   const pending = await pendingDrops(jar.getAll(), home.bags, mine);
-  return <Browse {...home} mine={mine} pendingDrops={pending.length} />;
+  return <Browse drops={home.drops} mine={mine} pendingDrops={pending.length} />;
 }

@@ -12,7 +12,7 @@
 .bar {
   width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px;
   min-height: 36px; padding: 0 12px; border: 0; border-bottom: 1px solid var(--ink);
-  background: var(--paper); color: var(--ink); cursor: pointer; text-align: left;
+  background: var(--paper); color: var(--ink); cursor: pointer; text-align: left; text-decoration: none;
   font-family: var(--font-mono); font-size: 11px; letter-spacing: var(--tracking-caps); text-transform: uppercase;
 }
 .bar:hover { background: var(--ink); color: var(--paper) }
@@ -21,34 +21,44 @@
 .close { background: var(--paper); color: var(--ink) }
 .close:hover { background: var(--ink); color: var(--paper) }
 
-/* Your drops: a button-shaped link, the pending drops counted in magenta beside it. */
-.yourDrops {
-  display: inline-flex; align-items: stretch; height: var(--control-h); text-decoration: none;
-  background: var(--ink); color: var(--paper); border: var(--border-w) solid var(--ink);
-  transition: background var(--dur-fast) var(--ease-snap), color var(--dur-fast) var(--ease-snap);
-}
-.yourDrops:hover { background: var(--paper); color: var(--ink) }
-.yourDrops:active { background: var(--magenta); color: var(--ink) }
-.yourDropsLabel {
-  display: flex; align-items: center; padding: 0 12px; white-space: nowrap;
-  font-family: var(--font-heavy); font-size: 14px; line-height: 1; letter-spacing: var(--tracking-caps); text-transform: uppercase;
-}
-.yourDropsCount {
-  display: flex; align-items: center; justify-content: center; min-width: 44px; padding: 0 8px;
-  background: var(--magenta); color: var(--ink); font-family: var(--font-display); font-size: 20px; line-height: 1;
+/* Get your own · All bags: two halves of one bar, across the column's padding on phones. */
+.ways {
+  position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-inline: calc(-1 * var(--pad-x)); border-block: var(--border-w) solid var(--ink);
 }
 @media (min-width: 1000px) {
-  .yourDropsLabel { padding: 0 14px }
-  .yourDropsCount { min-width: 48px }
+  .ways { grid-template-columns: repeat(2, 220px); align-self: flex-start; margin-inline: 0; border: var(--border-w) solid var(--ink) }
 }
-/* With drops still to make it keeps nudging, once the poster is in: every 3s the button
-   shakes and kicks out a magenta shadow, and the count pops. Hovering holds it still. */
+.way {
+  display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; gap: 12px;
+  min-height: 76px; padding: 10px 12px; border: 0; background: var(--paper); color: var(--ink);
+  text-align: left; text-decoration: none; cursor: pointer;
+  font-family: var(--font-heavy); font-size: 14px; line-height: 1.1; letter-spacing: var(--tracking-caps); text-transform: uppercase;
+  transition: background var(--dur-fast) var(--ease-snap), color var(--dur-fast) var(--ease-snap);
+}
+.way:hover { background: var(--ink); color: var(--paper) }
+.wayPrimary { background: var(--ink); color: var(--paper) }
+.wayPrimary:hover { background: var(--magenta); color: var(--ink) }
+@media (min-width: 1000px) { .way { min-height: 88px; padding: 12px 14px; font-size: 16px } }
+
+/* Drops waiting (phones only): hangs off the bar's bottom right corner, over TRACK. */
+.sticker {
+  position: absolute; z-index: 1; top: calc(100% + 16px); left: calc(100% - 16px); width: 112px; height: 112px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  border: 3px solid var(--ink); border-radius: 50%; background: var(--magenta); color: var(--ink);
+  rotate: -12deg; text-align: center; text-decoration: none;
+}
+.stickerCount { font-family: var(--font-display); font-size: 40px; line-height: 0.8 }
+.stickerLabel { font-family: var(--font-heavy); font-size: 11px; line-height: 1.1; letter-spacing: var(--tracking-caps); text-transform: uppercase }
+
+/* With drops still to make the sticker keeps nudging, once the poster is in: every 3s it
+   shakes and kicks out a shadow, and the count pops. Hovering holds it still. */
 @keyframes nudge {
   0%, 74%, 100% { transform: none; box-shadow: 0 0 0 var(--magenta) }
-  78% { transform: rotate(-4deg); box-shadow: 4px 4px 0 var(--magenta) }
-  83% { transform: rotate(3deg); box-shadow: 4px 4px 0 var(--magenta) }
-  88% { transform: rotate(-2deg); box-shadow: 4px 4px 0 var(--magenta) }
-  93% { transform: rotate(1deg); box-shadow: 2px 2px 0 var(--magenta) }
+  78% { transform: rotate(-4deg); box-shadow: 4px 4px 0 var(--ink) }
+  83% { transform: rotate(3deg); box-shadow: 4px 4px 0 var(--ink) }
+  88% { transform: rotate(-2deg); box-shadow: 4px 4px 0 var(--ink) }
+  93% { transform: rotate(1deg); box-shadow: 2px 2px 0 var(--ink) }
 }
 @keyframes pop {
   0%, 74%, 100% { transform: none }
@@ -57,17 +67,14 @@
 }
 @media (prefers-reduced-motion: no-preference) {
   .waiting { animation: nudge 3s ease-in-out 1.6s infinite }
-  .waiting .yourDropsCount { animation: pop 3s ease-in-out 1.6s infinite }
-  .waiting:hover, .waiting:hover .yourDropsCount { animation-play-state: paused }
+  .waiting .stickerCount { animation: pop 3s ease-in-out 1.6s infinite }
+  .waiting:hover, .waiting:hover .stickerCount { animation-play-state: paused }
 }
 
-/* The drops panel sits beside the poster until the two no longer fit (620 + 380px),
-   then wraps below it: only then is a button needed to get down to it. Your drops sits
-   with the buttons then, and up by D.A.T while the two are side by side. */
+/* The drops panel sits beside the poster until the two no longer fit (620 + 380px), then wraps
+   below it: a phone, then, where the Drops waiting sticker shows. */
 .stackedOnly { display: none }
 @media (max-width: 999px) { .stackedOnly { display: contents } }
-.wideOnly { display: contents }
-@media (max-width: 999px) { .wideOnly { display: none } }
 
 /* The three steps side by side, or stacked once their box is too narrow for three columns (phones). */
 .stepsBox { container-type: inline-size }
@@ -81,7 +88,7 @@
 /* Coming in: DROP A then TRACK slide 10px into place (--d apart, each from its own --from: DROP A
    up, the rotated TRACK right to left), then everything else fades in together, and the list's
    header then tracks slide down one after the other (--delay). All of it waits hidden for .shown
-   on the page; without motion, nothing is ever hidden. `translate` leaves TRACK's rotation alone. */
+   on the page; without motion, nothing is ever hidden. */
 @keyframes enter { from { opacity: 0; translate: var(--from) } to { opacity: 1; translate: 0 0 } }
 @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
 @keyframes slideDown { from { opacity: 0; translate: 0 -10px } to { opacity: 1; translate: 0 0 } }
@@ -92,10 +99,3 @@
   .shown .slide { opacity: 1; animation: slideDown 300ms cubic-bezier(.2, .8, .2, 1) var(--delay) backwards }
 }
 
-/* Into a bag, the column's content comes in from the right; back to the latest drops, from the left. */
-@keyframes columnIn { from { opacity: 0; translate: 24px 0 } to { opacity: 1; translate: 0 0 } }
-@keyframes columnBack { from { opacity: 0; translate: -24px 0 } to { opacity: 1; translate: 0 0 } }
-@media (prefers-reduced-motion: no-preference) {
-  .columnIn { animation: columnIn 280ms var(--ease-snap) backwards }
-  .columnBack { animation: columnBack 280ms var(--ease-snap) backwards }
-}

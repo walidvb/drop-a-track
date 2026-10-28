@@ -183,6 +183,13 @@
 }
 /* Up next: a dragged track lands before the row it's over (a magenta line there), or at the end. */
 .queue { margin: 0; padding: 0; list-style: none }
+/* In Then, where one bag's tracks start. */
+.thenBag {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 28px; padding: 0 12px;
+  background: var(--ink); color: var(--paper); text-decoration: none;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: var(--tracking-caps); text-transform: uppercase;
+}
+.thenBag:hover { color: var(--magenta) }
 .queueAfter {
   padding: 16px 12px; color: var(--text-secondary);
   font-family: var(--font-mono); font-size: 11px; letter-spacing: var(--tracking-caps); text-transform: uppercase;

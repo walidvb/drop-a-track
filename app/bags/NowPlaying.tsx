@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type DragEvent, type MouseEvent } from "react";
+import { Fragment, useState, type DragEvent, type MouseEvent } from "react";
 import { Artwork } from "@/components/ds/Artwork";
 import { TrackRow } from "@/components/ds/TrackRow";
 import { fmtTime } from "@/components/ds/types";
-import { padCount } from "@/lib/format";
+import { padCount, padNumber } from "@/lib/format";
 import type { HomeBag, HomeTrack } from "@/lib/home";
 import { usePlayer } from "../PlayerProvider";
 import styles from "./bags.module.css";
@@ -165,18 +165,29 @@ export function NowPlaying({
         {/* Let go over these: queued last. */}
         <ol className={styles.queue} {...target("end")}>
           {player.rest.map((t, i) => (
-            <li key={t.id}>
-              <TrackRow
-                track={t}
-                index={player.queued.length + i + 1}
-                active={false}
-                playing={false}
-                ruled
-                mono={false}
-                mine={mine.includes(t.id)}
-                onPlay={() => player.play(t)}
-              />
-            </li>
+            <Fragment key={t.id}>
+              {/* Bag after bag: a small header where each bag's run starts (not when shuffled: every track would get one). */}
+              {player.source !== "shuffle" && player.rest[i - 1]?.handle !== t.handle && (
+                <li>
+                  <Link {...linkTo(t.handle)} className={styles.thenBag}>
+                    <span>{t.handle}’s bag</span>
+                    <span>#{padNumber(bagOf(t)?.number ?? t.bagNumber)} →</span>
+                  </Link>
+                </li>
+              )}
+              <li>
+                <TrackRow
+                  track={t}
+                  index={player.queued.length + i + 1}
+                  active={false}
+                  playing={false}
+                  ruled
+                  mono={false}
+                  mine={mine.includes(t.id)}
+                  onPlay={() => player.play(t)}
+                />
+              </li>
+            </Fragment>
           ))}
           {player.after === "shuffle" && <li className={styles.queueAfter}>Then everything, shuffled</li>}
         </ol>

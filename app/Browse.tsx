@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MediaEngine, usePlayerQueue } from "@cucu/media/react";
 import { Player } from "@/components/ds/Player";
@@ -192,12 +193,12 @@ export function Browse({
             )}
             {drops.map((d, i) => (
               <div key={d.id} className={styles.slide} style={{ ...slideIn(i), display: "flex", flexDirection: "column" }}>
-                {/* One header per run of drops into the same bag. */}
+                {/* One header per run of drops into the same bag: it goes to the bag's page. */}
                 {drops[i - 1]?.handle !== d.handle && (
-                  <button type="button" className={styles.bar} onClick={() => openBag(d.handle)}>
+                  <Link href={bagPath(d.handle)} className={styles.bar}>
                     <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Into {d.handle}{"’"}s bag</span>
                     <span style={{ whiteSpace: "nowrap" }}>#{padNumber(d.bagNumber)} →</span>
-                  </button>
+                  </Link>
                 )}
                 <TrackRow
                   track={d}

@@ -3,6 +3,6 @@
 .env.*
 !.env.example
 # Texture sources (the built masks are in public/textures).
-assets/
+assets/textures/
 # Local tooling and agent worktrees.
 .claude/

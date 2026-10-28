@@ -49,7 +49,8 @@
    box (pulled up to its cap height) so the covers keep their taps. */
 .covers { --slot: calc(100cqw / 6.5); position: relative; z-index: 1; display: flex; background: var(--ink); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none }
 .covers::-webkit-scrollbar { display: none }
-@media (hover: hover) { .covers { scrollbar-width: thin } }
+/* With a mouse the row glides from its ends (useEdgeScroll): no snapping, which would fight it. */
+@media (hover: hover) { .covers { scrollbar-width: thin; scroll-snap-type: none } }
 @container (min-width: 780px) { .covers { --slot: calc(100cqw / 12) } }
 .cover, .empty { position: relative; flex: 0 0 var(--slot); height: var(--slot); scroll-snap-align: start }
 .cover { padding: 0; border: 0; background: none; cursor: pointer }
@@ -57,6 +58,14 @@
 .cover { filter: grayscale(1) contrast(1.15); transition: filter var(--dur-fast) var(--ease-snap) }
 .bag:hover .cover, .selected .cover { filter: none }
 .cover:hover { outline: 3px solid var(--magenta); outline-offset: -3px }
+/* Under the pointer, a cover shows it plays (the one on shows its own ▶︎ or ❚❚ already). */
+.cover:not(:has(.coverNow))::after,
+.item:not([aria-pressed="true"]) .itemCover::after {
+  content: "▶︎"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--ink) 40%, transparent); color: var(--paper); font-size: 16px;
+  opacity: 0; transition: opacity var(--dur-fast) var(--ease-snap);
+}
+.cover:hover::after, .item:hover .itemCover::after { opacity: 1 }
 .coverNow {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   background: rgb(0 0 0 / 0.4); box-shadow: inset 0 0 0 3px var(--paper); color: var(--paper); font-size: 14px; letter-spacing: -2px;
@@ -174,6 +183,13 @@
 }
 /* Up next: a dragged track lands before the row it's over (a magenta line there), or at the end. */
 .queue { margin: 0; padding: 0; list-style: none }
+/* In Then, where one bag's tracks start. */
+.thenBag {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 28px; padding: 0 12px;
+  background: var(--ink); color: var(--paper); text-decoration: none;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: var(--tracking-caps); text-transform: uppercase;
+}
+.thenBag:hover { color: var(--magenta) }
 .queueAfter {
   padding: 16px 12px; color: var(--text-secondary);
   font-family: var(--font-mono); font-size: 11px; letter-spacing: var(--tracking-caps); text-transform: uppercase;

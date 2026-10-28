@@ -15,6 +15,7 @@ import { shuffle } from "@/lib/shuffle";
 import { usePlayer } from "../PlayerProvider";
 import { NowPlaying, dragTrack, dropLine, placeIn, type QueueSpot } from "./NowPlaying";
 import styles from "./bags.module.css";
+import { useEdgeScroll } from "./useEdgeScroll";
 
 /** A row of covers is at least this long: a short bag shows its empty slots. */
 const SLOTS = 12;
@@ -53,8 +54,11 @@ export function AllBags({
   /** Once the last bag is done: everything, shuffled (a new order each time round). */
   const afterBags = useMemo(() => ({ source: "shuffle", list: () => shuffle(all) }), [all]);
 
-  // Nothing on yet (a first visit): the first bag's first track, cued so its player loads early.
-  useEffect(() => player.cue(all, { source: "bags", then: afterBags }), [player, all, afterBags]);
+  // Nothing on yet (a first visit to All bags): the first bag's first track, cued so its player
+  // loads early. A bag's page cues that bag instead (below).
+  useEffect(() => {
+    if (!selected) player.cue(all, { source: "bags", then: afterBags });
+  }, [player, all, afterBags, selected]);
 
   /** A track played from a bag (or a bag's Play): on from there, bag after bag. */
   const playNow = (t: HomeTrack) => (t.id === now?.id ? player.toggle() : player.playFrom(all, t, { source: "bags", then: afterBags }));
@@ -69,6 +73,7 @@ export function AllBags({
     if (t) player.enqueue(t, to === "end" ? null : to.before);
   };
 
+  const edgeScroll = useEdgeScroll();
   const [sheet, setSheet] = useState(false);
   const sheetClose = useRef<HTMLButtonElement>(null);
   /** The phone's player bar, measured: an open bag's handle sticks just above it. */
@@ -110,6 +115,19 @@ export function AllBags({
     const scrollToSelected = () => document.getElementById(`bag-${selected}`)?.scrollIntoView();
     document.fonts.ready.then(() => requestAnimationFrame(() => requestAnimationFrame(scrollToSelected)));
   }, [selected]);
+  // What's next follows the bag open: from its first track (or on from what's on, if that's in it),
+  // then the bags after it. What's on keeps playing; what's queued still goes first. Once per bag
+  // opened (or arrived on).
+  const followed = useRef<string | null>(null);
+  useEffect(() => {
+    if (followed.current === picked) return;
+    followed.current = picked;
+    if (!picked) return;
+    const bag = bags.find((b) => b.handle === picked);
+    if (!bag?.tracks.length) return;
+    const at = now?.handle === picked ? all.findIndex((t) => t.id === now.id) + 1 : all.findIndex((t) => t.id === bag.tracks[0].id);
+    player.follow(all, at, { source: "bags", then: afterBags });
+  }, [picked, bags, all, now, player, afterBags]);
   // Back and forward move between the bags opened here.
   useEffect(() => {
     const onPop = () => setPicked(handleFromPath(location.pathname));
@@ -220,14 +238,24 @@ export function AllBags({
                   ))}
                 </div>
               ) : (
-                // Scrolls sideways once there's more than fits; a cut-off cover at the edge says so.
-                // A cover opens the bag.
-                <div className={styles.covers}>
+                // Scrolls sideways once there's more than fits; a cut-off cover at the edge says so,
+                // and the mouse near either end glides it that way.
+                // A cover plays its track and opens the bag.
+                <div className={styles.covers} {...edgeScroll}>
                   {Array.from({ length: Math.max(SLOTS, b.tracks.length) }, (_, k) => {
                     const t = b.tracks[k];
                     if (!t) return <span key={`empty-${k}`} className={styles.empty} />;
                     return (
-                      <button key={t.id} type="button" className={styles.cover} aria-label={`Open ${b.handle}’s bag`} onClick={() => openBag(b.handle)}>
+                      <button
+                        key={t.id}
+                        type="button"
+                        className={styles.cover}
+                        aria-label={`${t.id === now?.id && player.playing ? "Pause" : "Play"} ${t.title} by ${t.artist}`}
+                        onClick={() => {
+                          playNow(t);
+                          openBag(b.handle);
+                        }}
+                      >
                         <Artwork src={t.thumbnail} source={t.source} size="100%" mono={false} />
                         {t.id === now?.id && <span className={styles.coverNow}>{player.playing ? "❚❚" : "▶︎"}</span>}
                       </button>

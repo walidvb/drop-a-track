@@ -1,7 +1,8 @@
 /* All bags: the bags in one column; beside them from 1000px the now-playing panel, below that a
    bar docked at the bottom that opens into a sheet. Hovers invert, links go magenta; a bag goes
    magenta behind its text, which keeps its colour. */
-.page { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; background: var(--paper); color: var(--ink) }
+/* No scroll anchoring: a bag closing above the screen would hold the view still against glideTo. */
+.page { overflow-anchor: none; min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; background: var(--paper); color: var(--ink) }
 .main { min-width: 0; display: flex; flex-direction: column }
 .aside { display: none }
 @media (min-width: 1000px) {

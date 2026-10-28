@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { FocusScope } from "@radix-ui/react-focus-scope";
 import { motion } from "motion/react";
 import { Sheet } from "react-modal-sheet";
@@ -106,8 +106,10 @@ export function AllBags({
   useEffect(() => {
     if (!picked || !scrollToOpened.current) return;
     scrollToOpened.current = false;
-    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    document.getElementById(`bag-${picked}`)?.scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
+    const el = document.getElementById(`bag-${picked}`);
+    if (!el) return;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return el.scrollIntoView();
+    return glideTo(el, (FLY + stagger(5)) * 1000);
   }, [picked]);
   const linkTo = (handle: string | null) => ({
     href: handle ? bagPath(handle) : "/bags",
@@ -232,51 +234,54 @@ export function AllBags({
                   <span>Drop yours →</span>
                 </button>
               )}
-              {open ? (
-                <div className={styles.grid} role="group" aria-label={`${b.handle}’s tracks`}>
-                  {b.tracks.length === 0 && <p className={styles.none}>Nothing in the bag yet. Be the first.</p>}
-                  {b.tracks.map((t, k) => (
-                    <Item
-                      key={t.id}
-                      index={k}
-                      track={t}
-                      now={t.id === now?.id}
-                      playing={player.playing}
-                      mine={mine.includes(t.id)}
-                      onPlay={() => playNow(t)}
-                      onQueue={() => player.enqueue(t)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                // Scrolls sideways once there's more than fits; a cut-off cover at the edge says so,
-                // and the mouse near either end glides it that way.
-                // A cover plays its track and opens the bag.
-                <div className={styles.covers} {...edgeScroll}>
-                  {Array.from({ length: Math.max(SLOTS, b.tracks.length) }, (_, k) => {
-                    const t = b.tracks[k];
-                    if (!t) return <span key={`empty-${k}`} className={styles.empty} />;
-                    return (
-                      <button
+              {/* The covers (or, open, the grid) open and close like an accordion. */}
+              <Unfold>
+                {open ? (
+                  <div className={styles.grid} role="group" aria-label={`${b.handle}’s tracks`}>
+                    {b.tracks.length === 0 && <p className={styles.none}>Nothing in the bag yet. Be the first.</p>}
+                    {b.tracks.map((t, k) => (
+                      <Item
                         key={t.id}
-                        type="button"
-                        className={styles.cover}
-                        aria-label={`${t.id === now?.id && player.playing ? "Pause" : "Play"} ${t.title} by ${t.artist}`}
-                        onClick={() => {
-                          playNow(t);
-                          openBag(b.handle);
-                        }}
-                      >
-                        {/* Same layoutId as in the open bag's grid: covers fly between the two. */}
-                        <motion.span layoutId={`cover-${t.id}`} transition={fly(k)} style={{ display: "block", width: "100%", height: "100%" }}>
-                          <Artwork src={t.thumbnail} source={t.source} size="100%" mono={false} />
-                        </motion.span>
-                        {t.id === now?.id && <span className={styles.coverNow}>{player.playing ? "❚❚" : "▶︎"}</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+                        index={k}
+                        track={t}
+                        now={t.id === now?.id}
+                        playing={player.playing}
+                        mine={mine.includes(t.id)}
+                        onPlay={() => playNow(t)}
+                        onQueue={() => player.enqueue(t)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  // Scrolls sideways once there's more than fits; a cut-off cover at the edge says so,
+                  // and the mouse near either end glides it that way.
+                  // A cover plays its track and opens the bag.
+                  <div className={styles.covers} {...edgeScroll}>
+                    {Array.from({ length: Math.max(SLOTS, b.tracks.length) }, (_, k) => {
+                      const t = b.tracks[k];
+                      if (!t) return <span key={`empty-${k}`} className={styles.empty} />;
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          className={styles.cover}
+                          aria-label={`${t.id === now?.id && player.playing ? "Pause" : "Play"} ${t.title} by ${t.artist}`}
+                          onClick={() => {
+                            playNow(t);
+                            openBag(b.handle);
+                          }}
+                        >
+                          {/* Same layoutId as in the open bag's grid: covers fly between the two. */}
+                          <motion.span layoutId={`cover-${t.id}`} transition={fly(k)} style={{ display: "block", width: "100%", height: "100%" }}>
+                            <Artwork src={t.thumbnail} source={t.source} size="100%" mono={false} />
+                          </motion.span>
+                          {t.id === now?.id && <span className={styles.coverNow}>{player.playing ? "❚❚" : "▶︎"}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </Unfold>
               <h2 className={styles.name}>
                 <Link {...linkTo(open ? null : b.handle)} aria-expanded={open} className={styles.nameLink}>
                   <FitText style={display}>{b.handle}</FitText>
@@ -337,6 +342,57 @@ export function AllBags({
         <Sheet.Backdrop unstyled className={styles.backdrop} onTap={() => setSheet(false)} />
       </Sheet>
     </div>
+  );
+}
+
+/**
+ * Scrolls to `el` (its scroll margin below the top) while the bags above and around it are still
+ * opening or closing: its place is read again every frame, so the scroll ends on it, not on where
+ * it was when the scroll began. Eases there; done once `ms` have passed and it's arrived (or can't
+ * scroll further), or as soon as the reader scrolls. Returns a stop, for an effect's cleanup.
+ */
+function glideTo(el: HTMLElement, ms: number) {
+  const start = performance.now();
+  let last = NaN;
+  let frame = requestAnimationFrame(function step(now) {
+    const target = el.getBoundingClientRect().top + scrollY - parseFloat(getComputedStyle(el).scrollMarginTop || "0");
+    const left = target - scrollY;
+    // Done once settled: arrived, or stuck (a bag near the bottom can't scroll all the way up).
+    if (now - start > ms && (Math.abs(left) < 1 || scrollY === last)) return stop();
+    last = scrollY;
+    scrollTo(0, scrollY + left * 0.18);
+    frame = requestAnimationFrame(step);
+  });
+  // The reader scrolling (wheel, touch, keys, the scrollbar) takes over: the glide lets go.
+  // Not on "scroll" itself, which the glide's own steps fire too.
+  const takeOver = ["wheel", "touchstart", "keydown", "mousedown"] as const;
+  function stop() {
+    cancelAnimationFrame(frame);
+    for (const type of takeOver) removeEventListener(type, stop);
+  }
+  for (const type of takeOver) addEventListener(type, stop, { passive: true });
+  return stop;
+}
+
+/**
+ * Its content's height, animated: opening a bag (strip → grid) or closing it, the area
+ * grows or shrinks over the covers' flight, and what's below slides instead of jumping. Clipped
+ * while it does.
+ */
+function Unfold({ children }: { children: ReactNode }) {
+  const inner = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState<number | "auto">("auto");
+  useEffect(() => {
+    const el = inner.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setHeight(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return (
+    <motion.div initial={false} animate={{ height }} transition={{ duration: FLY + stagger(5), ease: [0.2, 0.8, 0.2, 1] }} style={{ overflow: "clip" }}>
+      <div ref={inner}>{children}</div>
+    </motion.div>
   );
 }
 

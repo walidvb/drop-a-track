@@ -1,8 +1,11 @@
 /** Public handles: shown as "mira.k" (never "@mira.k") and used in /bags/mira.k. Set at handover; the owner can rename it from /manage. */
 export const HANDLE_PATTERN = /^[a-z0-9._-]{2,30}$/;
 
-/** Paths the app itself owns: an old /handle link to a bag there could never be reached. */
-const RESERVED = new Set(["admin", "api", "bags", "closed", "manage", "my-drops", "s", "favicon.ico"]);
+/**
+ * Handles no bag can take. Bags live under /bags/, clear of the app's own paths, so only "bags"
+ * itself: its old address (/bags, from before bags moved) is All bags.
+ */
+const RESERVED = new Set(["bags"]);
 
 /** A handle as typed: case-insensitive, a stray leading "@" forgiven. */
 export function parseHandle(raw: string): string | null {

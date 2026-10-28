@@ -91,7 +91,7 @@ export function Poster({
             <span aria-hidden="true">→</span>
           </button>
           <Link href="/bags" className={styles.way}>
-            <span>See past bags</span>
+            <span>Check all bags</span>
             <span aria-hidden="true">→</span>
           </Link>
           {pendingDrops > 0 && <DropsWaiting pending={pendingDrops} />}

@@ -21,7 +21,7 @@
 .close { background: var(--paper); color: var(--ink) }
 .close:hover { background: var(--ink); color: var(--paper) }
 
-/* Get your own · See past bags: two halves of one bar, across the column's padding on phones. */
+/* Get your own · All bags: two halves of one bar, across the column's padding on phones. */
 .ways {
   position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-inline: calc(-1 * var(--pad-x)); border-block: var(--border-w) solid var(--ink);

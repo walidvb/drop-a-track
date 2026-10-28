@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { FocusScope } from "@radix-ui/react-focus-scope";
 import { motion } from "motion/react";
 import { Sheet } from "react-modal-sheet";
@@ -120,12 +120,35 @@ export function AllBags({
    * stays. Once it's laid out (the one open before has closed), it's scrolled to.
    */
   const scrollToOpened = useRef(false);
+  /**
+   * The bag that closes at once, not unfolding: one above the bag being opened. Animated, it would
+   * keep shifting the opened bag up the page while its covers fly in, so they'd land, then drift
+   * with it (a halt before their place). It goes in two steps: that bag shuts and the page is
+   * scrolled by what it lost (`stayPut`, so nothing jumps on screen); only next frame does this one
+   * open, so motion measures its covers' flight on a page that has settled (a scroll between its
+   * before and after would read as every cover moving). Its own covers don't fly back.
+   */
+  const [snapShut, setSnapShut] = useState<string | null>(null);
+  const stayPut = useRef<{ handle: string; top: number } | null>(null);
   const openBag = (handle: string | null) => {
-    setPicked(handle);
+    const at = (h: string | null) => bags.findIndex((b) => b.handle === h);
+    const shut = picked && handle && at(picked) < at(handle) ? picked : null;
     const path = handle ? bagPath(handle) : "/bags";
     if (location.pathname !== path) history.pushState(null, "", path);
     scrollToOpened.current = handle !== null;
+    setSnapShut(shut);
+    if (!shut || !handle) return setPicked(handle);
+    const el = document.getElementById(`bag-${handle}`);
+    stayPut.current = el ? { handle, top: el.getBoundingClientRect().top } : null;
+    setPicked(null);
+    requestAnimationFrame(() => setPicked(handle));
   };
+  useLayoutEffect(() => {
+    const s = stayPut.current;
+    stayPut.current = null;
+    const el = s && document.getElementById(`bag-${s.handle}`);
+    if (el) scrollBy(0, el.getBoundingClientRect().top - s.top);
+  }, [picked]);
   useEffect(() => {
     if (!picked || !scrollToOpened.current) return;
     scrollToOpened.current = false;
@@ -165,7 +188,10 @@ export function AllBags({
   }, [picked, bags, all, now, player, afterBags]);
   // Back and forward move between the bags opened here.
   useEffect(() => {
-    const onPop = () => setPicked(handleFromPath(location.pathname));
+    const onPop = () => {
+      setSnapShut(null);
+      setPicked(handleFromPath(location.pathname));
+    };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
@@ -294,7 +320,7 @@ export function AllBags({
                 </button>
               )}
               {/* The covers (or, open, the grid) open and close like an accordion. */}
-              <Unfold>
+              <Unfold instant={b.handle === snapShut}>
                 {open ? (
                   <div className={styles.grid} role="group" aria-label={`${b.handle}’s tracks`}>
                     {b.tracks.length === 0 && <p className={styles.none}>Nothing in the bag yet. Be the first.</p>}
@@ -330,8 +356,15 @@ export function AllBags({
                             openBag(b.handle);
                           }}
                         >
-                          {/* Same layoutId as in the open bag's grid: covers fly between the two. */}
-                          <motion.span layoutId={`cover-${t.id}`} transition={fly(k)} style={{ display: "block", width: "100%", height: "100%" }}>
+                          {/* Same layoutId as in the open bag's grid: covers fly between the two. Measured only
+                              when this bag opens or closes, so bags shifting around it never set its covers moving;
+                              none for a bag that snaps shut. */}
+                          <motion.span
+                            layoutId={b.handle === snapShut ? undefined : `cover-${t.id}`}
+                            layoutDependency={open}
+                            transition={fly(k)}
+                            style={{ display: "block", width: "100%", height: "100%" }}
+                          >
                             <Artwork src={t.thumbnail} source={t.source} size="100%" mono={false} />
                           </motion.span>
                           {t.id === now?.id && <span className={styles.coverNow}>{player.playing ? "❚❚" : "▶︎"}</span>}
@@ -436,9 +469,9 @@ function glideTo(el: HTMLElement, ms: number) {
 /**
  * Its content's height, animated: opening a bag (strip → grid) or closing it, the area
  * grows or shrinks over the covers' flight, and what's below slides instead of jumping. Clipped
- * while it does.
+ * while it does. `instant`: at once instead (a bag above the one opening: `snapShut`).
  */
-function Unfold({ children }: { children: ReactNode }) {
+function Unfold({ instant = false, children }: { instant?: boolean; children: ReactNode }) {
   const inner = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState<number | "auto">("auto");
   useEffect(() => {
@@ -447,7 +480,9 @@ function Unfold({ children }: { children: ReactNode }) {
     const ro = new ResizeObserver(() => setHeight(el.offsetHeight));
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [instant]);
+  // At once: no animated height at all, so it's shut in this very render (what stayPut measures).
+  if (instant) return <div ref={inner}>{children}</div>;
   return (
     <motion.div initial={false} animate={{ height }} transition={{ duration: FLY + stagger(5), ease: [0.2, 0.8, 0.2, 1] }} style={{ overflow: "clip" }}>
       <div ref={inner}>{children}</div>

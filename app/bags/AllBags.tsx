@@ -557,30 +557,33 @@ function Item({
         </Marquee>
         <span className={styles.itemArtist}>{track.artist}</span>
         <span className={styles.itemBy}>{dropLine(track)}</span>
-        {track.url && (
-          <SourceLink
-            url={track.url}
-            source={track.source}
-            draggable={false}
-            className={styles.itemSrc}
-            // The item plays on click and Enter: the link must only open the original.
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          />
-        )}
-        {!now && (
-          <button
-            type="button"
-            className={styles.itemQueue}
-            onClick={(e) => {
-              e.stopPropagation();
-              onQueue();
-            }}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
-            + Queue
-          </button>
-        )}
+        {/* On one line: ↗ to the original, then + Queue. */}
+        <span className={styles.itemActions}>
+          {track.url && (
+            <SourceLink
+              url={track.url}
+              source={track.source}
+              draggable={false}
+              className={styles.itemSrc}
+              // The item plays on click and Enter: the link must only open the original.
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            />
+          )}
+          {!now && (
+            <button
+              type="button"
+              className={styles.itemQueue}
+              onClick={(e) => {
+                e.stopPropagation();
+                onQueue();
+              }}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
+              + Queue
+            </button>
+          )}
+        </span>
       </span>
     </div>
   );

@@ -4,7 +4,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ds/Button";
 import { monoCaps } from "@/components/ds/styles";
 import { Texture } from "@/components/ds/Texture";
-import { Modal } from "@/components/Modal";
+import { Modal, ModalTitle } from "@/components/Modal";
 import { spotifyTitle } from "@/lib/spotify";
 
 const para: CSSProperties = { margin: 0, fontWeight: 800, fontSize: 17, lineHeight: 1.2 };
@@ -33,7 +33,7 @@ export function SpotifyModal({ url, onClose }: { url: string; onClose: () => voi
   ];
 
   return (
-    <Modal onClose={onClose} labelledBy="dat-sp-t" maxWidth={520} cardStyle={{ border: "var(--border-w-heavy) solid var(--paper)" }}>
+    <Modal onClose={onClose} maxWidth={520} cardStyle={{ border: "var(--border-w-heavy) solid var(--paper)" }}>
       <div style={{ position: "relative", overflow: "hidden", borderBottom: "var(--border-w-heavy) solid var(--ink)" }}>
         <Texture color="var(--magenta)" />
         <div style={{ position: "relative", padding: "16px 16px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
@@ -60,14 +60,15 @@ export function SpotifyModal({ url, onClose }: { url: string; onClose: () => voi
               ✕︎
             </button>
           </div>
-          <h2
-            id="dat-sp-t"
-            style={{ margin: 0, fontWeight: "normal", fontFamily: "var(--font-display)", fontSize: "min(56px,10.5vw)", lineHeight: 0.82, letterSpacing: "-0.02em" }}
-          >
-            BOYCOTT
-            <br />
-            SPOTIFY.
-          </h2>
+          <ModalTitle asChild>
+            <h2
+              style={{ margin: 0, fontWeight: "normal", fontFamily: "var(--font-display)", fontSize: "min(56px,10.5vw)", lineHeight: 0.82, letterSpacing: "-0.02em" }}
+            >
+              BOYCOTT
+              <br />
+              SPOTIFY.
+            </h2>
+          </ModalTitle>
         </div>
       </div>
       <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>

@@ -8,10 +8,12 @@ import { Sheet } from "react-modal-sheet";
 import { Artwork } from "@/components/ds/Artwork";
 import { Marquee } from "@/components/ds/Marquee";
 import { Player } from "@/components/ds/Player";
+import { SourceLink } from "@/components/ds/SourceLink";
 import { FitText } from "@/components/FitText";
-import { padCount, padNumber, sourceCode } from "@/lib/format";
+import { padCount, padNumber } from "@/lib/format";
 import { bagPath, handleFromPath } from "@/lib/handle";
 import type { HomeBag, HomeTrack } from "@/lib/home";
+import { fuzzyMatch } from "@/lib/search";
 import { shuffle } from "@/lib/shuffle";
 import { usePlayer } from "../PlayerProvider";
 import { NowPlaying, dragTrack, dropLine, placeIn, type QueueSpot } from "./NowPlaying";
@@ -29,6 +31,8 @@ const stagger = (i: number) => (i % 6) * 0.025;
 /** An item's frame and details start fading in this long before its cover stops (s). */
 const EARLY = 0.1;
 const fly = (i: number) => ({ duration: FLY, ease: [0.2, 0.8, 0.2, 1] as const, delay: stagger(i) });
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 const display = { fontFamily: "var(--font-display)", letterSpacing: "-0.02em", textTransform: "uppercase", whiteSpace: "nowrap" } as const;
 
@@ -58,6 +62,25 @@ export function AllBags({
   /** Empty bags are left out (nothing to see or play yet), but for the one whose page this is. */
   const bags = useMemo(() => withEmpty.filter((b) => b.tracks.length > 0 || b.handle === selected), [withEmpty, selected]);
   const all = useMemo(() => bags.flatMap((b) => b.tracks), [bags]);
+  /**
+   * Search: the bags (and in them the tracks) whose holder, title, artist or dropper match what's
+   * typed, typos forgiven (lib/search). Only what's shown is filtered: playing goes on through
+   * every bag.
+   */
+  const [searching, setSearching] = useState(false);
+  const [query, setQuery] = useState("");
+  const searchField = useRef<HTMLInputElement>(null);
+  const shown = useMemo(() => {
+    if (!query.trim()) return bags;
+    return bags.flatMap((b) => {
+      const tracks = b.tracks.filter((t) => fuzzyMatch(query, [b.handle, t.title, t.artist, t.droppedBy]));
+      return tracks.length || (!b.tracks.length && fuzzyMatch(query, [b.handle])) ? [{ ...b, tracks }] : [];
+    });
+  }, [bags, query]);
+  const closeSearch = () => {
+    setSearching(false);
+    setQuery("");
+  };
   const player = usePlayer();
   const now = player.now;
   const bagOf = (t: HomeTrack) => bags.find((b) => b.handle === t.handle);
@@ -182,22 +205,58 @@ export function AllBags({
             ← D.A.T
           </Link>
           <span>
-            {bags.length} bags · {all.length} tracks
+            {query.trim() ? `${shown.length} of ${bags.length} bags · ${plural(shown.reduce((n, b) => n + b.tracks.length, 0), "track")} found` : `${bags.length} bags · ${all.length} tracks`}
           </span>
         </div>
         <header className={styles.head}>
           <h1 className={styles.title}>
             {/* Outlined, so it never reads as one more bag. */}
-            <FitText style={{ ...display, color: "transparent", WebkitTextStroke: "2px var(--ink)" }}>All bags</FitText>
+            <FitText style={{ ...display, color: "transparent", WebkitTextStroke: "2px var(--ink)" }}>D.A.T club</FitText>
           </h1>
-          <button type="button" className={styles.shuffle} onClick={shuffleAll} disabled={all.length === 0}>
-            <span>Shuffle every bag</span>
-            <span aria-hidden="true">▶︎</span>
-          </button>
+          {/* Shuffle, and beside it a search icon that grows into a field over it (Escape clears, then closes). */}
+          <div className={`${styles.tools} ${searching ? styles.searching : ""}`}>
+            <button type="button" className={styles.shuffle} onClick={shuffleAll} disabled={all.length === 0} tabIndex={searching ? -1 : undefined}>
+              <span>Shuffle every bag</span>
+              <span aria-hidden="true">▶︎</span>
+            </button>
+            <div className={styles.search}>
+              <input
+                ref={searchField}
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Escape" && (query ? setQuery("") : closeSearch())}
+                placeholder="Bag, track, artist, who dropped it"
+                aria-label="Search the bags"
+                tabIndex={searching ? undefined : -1}
+              />
+              <button
+                type="button"
+                className={styles.searchButton}
+                aria-label={searching ? "Close search" : "Search the bags"}
+                aria-expanded={searching}
+                onClick={() => {
+                  if (searching) return closeSearch();
+                  setSearching(true);
+                  searchField.current?.focus({ preventScroll: true });
+                }}
+              >
+                {searching ? (
+                  "✕"
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="square" aria-hidden="true">
+                    <circle cx="10" cy="10" r="6.5" />
+                    <path d="M15 15l6 6" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
         </header>
 
         {bags.length === 0 && <p className={styles.none}>No bags yet.</p>}
-        {bags.map((b, i) => {
+        {bags.length > 0 && shown.length === 0 && <p className={styles.none}>Nothing matches “{query.trim()}”.</p>}
+        {shown.map((b, i) => {
           const here = current?.handle === b.handle;
           const tone = `${i % 2 === 0 ? styles.dark : ""} ${here ? styles.playing : ""}`;
           const open = b.handle === picked;
@@ -212,7 +271,7 @@ export function AllBags({
                     aria-label={`${here && player.playing ? "Pause" : "Play"} ${b.handle}’s bag`}
                     onClick={() => (here ? player.toggle() : playNow(b.tracks[0]))}
                   >
-                    {here ? `${player.playing ? "❚❚" : "▶︎"} ${placeIn(b, current!)}` : "▶︎ Play"}
+                    {here ? `${player.playing ? "❚❚" : "▶︎"} ${placeIn(bagOf(current!), current!)}` : "▶︎ Play"}
                   </button>
                 ) : (
                   <span />
@@ -464,18 +523,15 @@ function Item({
         <span className={styles.itemArtist}>{track.artist}</span>
         <span className={styles.itemBy}>{dropLine(track)}</span>
         {track.url && (
-          <a
-            href={track.url}
-            target="_blank"
-            rel="noopener noreferrer"
+          <SourceLink
+            url={track.url}
+            source={track.source}
             draggable={false}
             className={styles.itemSrc}
             // The item plays on click and Enter: the link must only open the original.
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
-          >
-            {sourceCode(track.source)} ↗
-          </a>
+          />
         )}
         {!now && (
           <button

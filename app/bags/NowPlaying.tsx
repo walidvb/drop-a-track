@@ -13,6 +13,9 @@ import styles from "./bags.module.css";
 /** What a track carries when it's dragged: its id. */
 export const TRACK = "application/x-dat-track";
 
+/** Also carried by a track dragged out of Then: letting it go back over Then does nothing. */
+const FROM_THEN = "application/x-dat-then";
+
 /** Where a dragged track lands in the queue: before a queued track (by id), or last. */
 export type QueueSpot = { before: string } | "end";
 
@@ -37,8 +40,8 @@ export const dragTrack = (t: HomeTrack) => ({
 
 /**
  * What's on, its transport, and what's next: Queued (by hand: a track dragged from an open bag
- * drops in where it's let go, and the queued ones drag to reorder), then Then (what follows:
- * tracks gone back from, and the rest of what it's playing from). Big: the cover full width
+ * drops in where it's let go, opening a gap there as it's held over, and the queued ones drag to reorder), then Then (what follows:
+ * tracks gone back from, and the rest of what it's playing from; any of them drags up into Queued). Big: the cover full width
  * (beside the bags).
  */
 export function NowPlaying({
@@ -62,9 +65,10 @@ export function NowPlaying({
   const [dropAt, setDropAt] = useState<string | null>(null);
   const track = player.now;
   if (!track) return null;
-  const target = (to: QueueSpot) => ({
+  const target = (to: QueueSpot, refuse?: string) => ({
     onDragOver: (e: DragEvent) => {
       if (!e.dataTransfer.types.includes(TRACK)) return;
+      if (refuse && e.dataTransfer.types.includes(refuse)) return setDropAt(null);
       e.preventDefault(); // allows the drop
       setDropAt(to === "end" ? "end" : to.before);
     },
@@ -150,11 +154,11 @@ export function NowPlaying({
         </div>
         <ol className={styles.queue}>
           {player.queued.map((t, i) => (
-            <li key={t.id} {...dragTrack(t)} className={dropAt === t.id ? styles.dropHere : undefined} {...target({ before: t.id })}>
+            <li key={t.id} {...dragTrack(t)} className={`${styles.slot} ${dropAt === t.id ? styles.dropHere : ""}`} {...target({ before: t.id })}>
               <TrackRow track={t} index={i + 1} active={false} playing={false} ruled mono={false} mine={mine.includes(t.id)} onPlay={() => player.play(t)} />
             </li>
           ))}
-          <li className={`${styles.queueEnd} ${dropAt === "end" ? styles.dropHere : ""}`} {...target("end")}>
+          <li className={`${styles.slot} ${styles.queueEnd} ${dropAt === "end" ? styles.dropHere : ""}`} {...target("end")}>
             {player.queued.length ? "Drag here to queue last" : "Drag a track here to play it next"}
           </li>
         </ol>
@@ -162,8 +166,8 @@ export function NowPlaying({
           <span>Then{player.source === "shuffle" ? " · shuffled" : ""}</span>
           <span>{padCount(player.rest.length)}</span>
         </div>
-        {/* Let go over these: queued last. */}
-        <ol className={styles.queue} {...target("end")}>
+        {/* Let go over these: queued last. Dragged from here into Queued, a track leaves Then. */}
+        <ol className={styles.queue} {...target("end", FROM_THEN)}>
           {player.rest.map((t, i) => (
             <Fragment key={t.id}>
               {/* Bag after bag: a small header where each bag's run starts (not when shuffled: every track would get one). */}
@@ -175,7 +179,13 @@ export function NowPlaying({
                   </Link>
                 </li>
               )}
-              <li>
+              <li
+                draggable
+                onDragStart={(e) => {
+                  dragTrack(t).onDragStart(e);
+                  e.dataTransfer.setData(FROM_THEN, t.id);
+                }}
+              >
                 <TrackRow
                   track={t}
                   index={player.queued.length + i + 1}

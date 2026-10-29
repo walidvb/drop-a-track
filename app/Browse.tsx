@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { Player } from "@/components/ds/Player";
 import { ellipsis, monoCaps } from "@/components/ds/styles";
 import { TrackRow } from "@/components/ds/TrackRow";
@@ -40,32 +40,27 @@ export function Browse({
   // The tracks slide in one after the other, 200ms apart, after the poster. Past the first 10
   // (off screen anyway) they come in with the 10th.
   const slideIn = (i: number) => ({ ["--delay" as string]: `${HEADER_IN + 200 + Math.min(i, 10) * 200}ms` });
-  // The poster comes in once its fonts are ready (so the big words are fitted), or after 1.5s regardless.
-  const [shown, setShown] = useState(false);
-  useEffect(() => {
-    let live = true;
-    let timer = setTimeout(() => setShown(true), 1500);
-    document.fonts?.ready.then(() => {
-      if (!live) return;
-      clearTimeout(timer);
-      timer = setTimeout(() => setShown(true), 60);
-    });
-    return () => {
-      live = false;
-      clearTimeout(timer);
-    };
-  }, []);
 
   /** Once the latest drops are done: everything, shuffled. */
   const afterDrops = useMemo(() => ({ source: "shuffle", list: () => shuffle(drops) }), [drops]);
-  // Nothing on yet (a first visit): the newest drop, cued so its player loads early.
-  useEffect(() => player.cue(drops, { source: "drops", then: afterDrops }), [player, drops, afterDrops]);
+  // Nothing on yet (a first visit): the newest drop, cued so its player loads before the first tap,
+  // but a second after the page has: SoundCloud's widget alone is 1.2MB, and would hold up the poster.
+  const cueDrops = useEffectEvent(() => player.cue(drops, { source: "drops", then: afterDrops }));
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const cue = () => (timer = setTimeout(cueDrops, 1000));
+    if (document.readyState === "complete") cue();
+    else window.addEventListener("load", cue, { once: true });
+    return () => {
+      window.removeEventListener("load", cue);
+      clearTimeout(timer);
+    };
+  }, []);
   const play = (t: HomeTrack) => (t.id === player.now?.id ? player.toggle() : player.playFrom(drops, t, { source: "drops", then: afterDrops }));
   const current = player.started ? player.now : null;
 
   return (
     <div
-      className={shown ? styles.shown : undefined}
       style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", background: "var(--paper)" }}
     >
       <Poster pendingDrops={pendingDrops} onGetShirt={() => setShirt(true)} />

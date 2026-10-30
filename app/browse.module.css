@@ -23,8 +23,8 @@
 
 /* Phones: the poster holds still, one screen tall (the small viewport, so it fits with Safari's
    bars out), and what follows scrolls up over it. Beside the drops it's the full height. */
-.poster { position: relative; height: 100vh; min-height: 620px }
-@media (max-width: 999px) { .poster { position: sticky; top: 0; z-index: 0; height: 100svh; min-height: 0 } }
+.poster { --h: max(100vh, 620px); position: relative; height: var(--h) }
+@media (max-width: 999px) { .poster { --h: 100svh; position: sticky; top: 0; z-index: 0 } }
 
 /* © chip and D.A.T: side by side, or D.A.T under the chip on phones. */
 .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px }
@@ -128,15 +128,14 @@
 
 /* Coming in: DROP A then TRACK slide 10px into place (--d apart, each from its own --from: DROP A
    up, the rotated TRACK right to left), then everything else fades in together, and the list's
-   header then tracks slide down one after the other (--delay). All of it waits hidden for .shown
-   on the page; without motion, nothing is ever hidden. */
+   header then tracks slide down one after the other (--delay). All CSS, from first paint: the
+   poster's words are outlines, with no font to wait for. Without motion, nothing is ever hidden. */
 @keyframes enter { from { opacity: 0; translate: var(--from) } to { opacity: 1; translate: 0 0 } }
 @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
 @keyframes slideDown { from { opacity: 0; translate: 0 -10px } to { opacity: 1; translate: 0 0 } }
 @media (prefers-reduced-motion: no-preference) {
-  .enter, .reveal, .slide { opacity: 0 }
-  .shown .enter { opacity: 1; animation: enter 560ms cubic-bezier(.2, .8, .2, 1) var(--d) backwards }
-  .shown .reveal { opacity: 1; animation: fadeIn 280ms linear 560ms backwards }
-  .shown .slide { opacity: 1; animation: slideDown 300ms cubic-bezier(.2, .8, .2, 1) var(--delay) backwards }
+  .enter { animation: enter 560ms cubic-bezier(.2, .8, .2, 1) var(--d) backwards }
+  .reveal { animation: fadeIn 280ms linear 560ms backwards }
+  .slide { animation: slideDown 300ms cubic-bezier(.2, .8, .2, 1) var(--delay) backwards }
 }
 

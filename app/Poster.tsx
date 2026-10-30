@@ -2,9 +2,9 @@ import Link from "next/link";
 import { useId } from "react";
 import { monoCaps } from "@/components/ds/styles";
 import { Texture } from "@/components/ds/Texture";
-import { FitText } from "@/components/FitText";
 import { padCount } from "@/lib/format";
 import styles from "./browse.module.css";
+import { DROP_A, TRACK } from "./poster-words";
 
 /**
  * The pitch and the three ways in: wear one, scan one, listen. Sits on the poster beside the
@@ -68,8 +68,9 @@ function DropsWaiting({ pending }: { pending: number }) {
 /**
  * The D.A.T poster: the drifting moiré and How it works, with DROP A and TRACK fitted to its
  * edges. On phones the poster holds still (sticky, one screen tall) with just Check all bags on
- * it, and How it works follows it, scrolling up over it. It comes in (see browse.module.css) once
- * Browse marks the page .shown.
+ * it, and How it works follows it, scrolling up over it. It comes in on first paint (see
+ * browse.module.css). The two words are outlines (app/poster-words.ts) sized by CSS: DROP A to
+ * its column's width, TRACK to the poster's height (--h), so nothing waits on a font or refits.
  */
 export function Poster({
   pendingDrops,
@@ -124,44 +125,45 @@ export function Poster({
       </span>
       {/* Bleeds through the column's padding so DROP A kisses the left and bottom edges and TRACK. */}
       <div style={{ minWidth: 0, marginInline: "calc(-1 * var(--pad-x))", marginBottom: "calc(-1 * var(--pad-b))" }}>
-        <FitText
-          axis="w"
+        <svg
+          role="img"
+          aria-label="Drop a track" // TRACK, beside it, is hidden from screen readers
+          viewBox={`${DROP_A.x} ${-DROP_A.cap} ${DROP_A.w} ${DROP_A.cap}`}
+          overflow="visible" // round letters overshoot the cap line and still paint
           className={styles.enter}
           style={{
             ["--d" as string]: "0ms",
             ["--from" as string]: "0 10px", // up
-            fontFamily: "var(--font-display)",
-            letterSpacing: "-0.02em",
-            whiteSpace: "nowrap",
-            // Its glyph box reaches up over How it works: let clicks through to the buttons, never select it.
+            display: "block",
+            width: "100%",
+            height: "auto",
+            fill: "currentColor",
             pointerEvents: "none",
-            userSelect: "none",
           }}
         >
-          DROP A
-        </FitText>
+          <path d={DROP_A.d} />
+        </svg>
       </div>
     </div>
-    {/* The column turns, not the word: FitText's trims are uneven (cap side vs baseline), so
-        rotating the word itself would turn it about the wrong centre and shift it off the edges. */}
-    <div style={{ position: "relative", height: "100%", display: "flex", alignItems: "flex-end", transform: "rotate(180deg)" }}>
-      <FitText
-        axis="h"
-        max={400}
-        className={styles.enter}
-        style={{
-          ["--d" as string]: "140ms",
-          ["--from" as string]: "-10px 0", // inside the turned column: right to left on screen, "up" for the word
-          writingMode: "vertical-rl",
-          fontFamily: "var(--font-display)",
-          whiteSpace: "nowrap",
-          pointerEvents: "none",
-          userSelect: "none",
-        }}
-      >
-        TRACK
-      </FitText>
-    </div>
+    {/* Turned a quarter left, reading bottom to top, as tall as the poster. */}
+    <svg
+      aria-hidden="true"
+      viewBox={`${-TRACK.cap} ${-(TRACK.x + TRACK.w)} ${TRACK.cap} ${TRACK.w}`}
+      overflow="visible"
+      className={styles.enter}
+      style={{
+        ["--d" as string]: "140ms",
+        ["--from" as string]: "10px 0", // right to left
+        position: "relative", // over the moiré
+        display: "block",
+        height: "var(--h)",
+        width: "auto",
+        fill: "currentColor",
+        pointerEvents: "none",
+      }}
+    >
+      <path transform="rotate(-90)" d={TRACK.d} />
+    </svg>
     {pendingDrops > 0 && <DropsWaiting pending={pendingDrops} />}
   </main>
   <div className={styles.howBelow}>

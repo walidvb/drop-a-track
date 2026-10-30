@@ -16,7 +16,7 @@ for src in assets/textures/*.png assets/textures/*.jpg; do
   suffix="${suffix#-}"
   name="ripples-${suffix:-a}"
   magick "$src" -colorspace Gray -negate -alpha copy -channel RGB -evaluate set 0 +channel \
-    -quality 82 "public/textures/$name.webp"
+    -quality 82 -define webp:alpha-quality=50 "public/textures/$name.webp"
   echo "$src → public/textures/$name.webp"
 done
 # The share images (lib/og.tsx) take A and B as black on white JPEGs: satori reads no WebP.

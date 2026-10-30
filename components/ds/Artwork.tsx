@@ -12,13 +12,17 @@ import { Texture } from "./Texture";
  * frame alone at 320px, so a square crop shows picture, not black bars.
  */
 export function sizedArt(src: string, small: boolean) {
+  const bandcamp = /(bcbits\.com\/img\/a\d+)_10\.jpg$/;
   return small
     ? src
-        .replace(/(bcbits\.com\/img\/a\d+)_10\.jpg$/, "$1_9.jpg")
+        .replace(bandcamp, "$1_9.jpg")
         .replace(/-t500x500\.jpg$/, "-t300x300.jpg")
         .replace(/(ytimg\.com\/vi\/[^/]+)\/hqdefault\.jpg$/, "$1/mqdefault.jpg")
-    : src.replace(/(bcbits\.com\/img\/a\d+)_10\.jpg$/, "$1_16.jpg");
+    : src.replace(bandcamp, "$1_16.jpg");
 }
+
+/** Up to here, the small art still covers the slot at 2x (Bandcamp's _9 is 210px). */
+const SMALL = 105;
 
 export function Artwork({
   src,
@@ -41,7 +45,7 @@ export function Artwork({
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0, overflow: "hidden", background: "var(--ink)" }}>
       {src && failed !== src ? (
         <img
-          src={sizedArt(src, typeof size === "number" && size <= 70)}
+          src={sizedArt(src, typeof size === "number" && size <= SMALL)}
           alt={alt}
           // Lazy also keeps React from preloading every artwork in <head>, ahead of the fonts.
           loading="lazy"

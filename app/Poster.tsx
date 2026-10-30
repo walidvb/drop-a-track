@@ -127,7 +127,7 @@ export function Poster({
       <div style={{ minWidth: 0, marginInline: "calc(-1 * var(--pad-x))", marginBottom: "calc(-1 * var(--pad-b))" }}>
         <svg
           role="img"
-          aria-label="Drop a"
+          aria-label="Drop a track" // TRACK, beside it, is hidden from screen readers
           viewBox={`${DROP_A.x} ${-DROP_A.cap} ${DROP_A.w} ${DROP_A.cap}`}
           overflow="visible" // round letters overshoot the cap line and still paint
           className={styles.enter}
@@ -147,8 +147,7 @@ export function Poster({
     </div>
     {/* Turned a quarter left, reading bottom to top, as tall as the poster. */}
     <svg
-      role="img"
-      aria-label="Track"
+      aria-hidden="true"
       viewBox={`${-TRACK.cap} ${-(TRACK.x + TRACK.w)} ${TRACK.cap} ${TRACK.w}`}
       overflow="visible"
       className={styles.enter}

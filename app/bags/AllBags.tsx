@@ -419,8 +419,9 @@ export function AllBags({
         </div>
       )}
       {/* Phones: the queue in a sheet that swipes down to close: from its handle (the bar pinned on
-          the player, where the thumb is), or from the list once it's scrolled up to its end; until
-          then a swipe down scrolls the list on to later tracks. Focus moves in once it's open (it
+          the player, where the thumb is), from the strip along its top edge, or from the list once
+          it's scrolled up to its end; until then a swipe down scrolls the list on to later tracks.
+          Focus moves in once it's open (it
           mounts mid-animation, too early to take it), stays in it, and goes back to the bar after;
           Escape closes it too. */}
       <Sheet
@@ -435,6 +436,8 @@ export function AllBags({
         <Sheet.Container unstyled className={styles.sheet}>
           <FocusScope asChild trapped loop>
             <div role="dialog" aria-modal="true" aria-label="Queue" className={styles.sheetBody}>
+              {/* A strip along the top that only drags: a swipe down from the sheet's edge closes it too. */}
+              <Sheet.Header unstyled className={styles.grab} />
               <Sheet.Content scrollRef={sheetScroll}>
                 {nowPlaying(
                   false,

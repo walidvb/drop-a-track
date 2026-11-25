@@ -180,6 +180,8 @@
 .sheet { max-height: calc(100% - 72px); background: var(--paper); border-top: 4px solid var(--magenta) }
 .sheetBody { display: flex; flex-direction: column; height: 100% }
 .sheetBody .bar { min-height: 44px }
+/* Its top edge: a clear strip to swipe the sheet down by. */
+.grab { flex: 0 0 28px }
 
 /* Now playing */
 .np { display: flex; flex-direction: column; background: var(--ink); color: var(--paper) }

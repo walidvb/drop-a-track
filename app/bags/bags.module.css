@@ -240,3 +240,11 @@
   font-family: var(--font-mono); font-size: 11px; letter-spacing: var(--tracking-caps); text-transform: uppercase;
 }
 
+/* Phones (the sheet): the queue reads bottom to top. The player stays at the bottom, what's next
+   sits just above it, and scrolling up goes further ahead. */
+@media (max-width: 999px) {
+  .upward, .upward .npLists, .upward .queue { display: flex; flex-direction: column-reverse }
+  .upward .np { position: sticky; bottom: 0; z-index: 1 }
+  .upward .npListHead { border-bottom: 0; border-top: 1px solid var(--ink) }
+  .upward .queuedEmpty { display: none }
+}

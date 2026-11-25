@@ -42,7 +42,7 @@ export const dragTrack = (t: HomeTrack) => ({
  * What's on, its transport, and what's next: Queued (by hand: a track dragged from an open bag
  * drops in where it's let go, opening a gap there as it's held over, and the queued ones drag to reorder), then Then (what follows:
  * tracks gone back from, and the rest of what it's playing from; any of them drags up into Queued). Big: the cover full width
- * (beside the bags).
+ * (beside the bags). Not big (the phone's sheet): it all reads bottom to top, the player at the bottom with what's next just above.
  */
 export function NowPlaying({
   big,
@@ -97,7 +97,7 @@ export function NowPlaying({
       </span>
     </div>
   );
-  return (
+  const body = (
     <>
       <div className={styles.np}>
         {big && (
@@ -143,7 +143,7 @@ export function NowPlaying({
           </button>
         </div>
       </div>
-      <div onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setDropAt(null)}>
+      <div className={styles.npLists} onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setDropAt(null)}>
         <div className={styles.npListHead}>
           <span>Queued · {padCount(player.queued.length)}</span>
           {player.queued.length > 0 && (
@@ -204,4 +204,5 @@ export function NowPlaying({
       </div>
     </>
   );
+  return big ? body : <div className={styles.upward}>{body}</div>;
 }

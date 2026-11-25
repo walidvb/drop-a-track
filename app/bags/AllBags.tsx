@@ -70,6 +70,8 @@ export function AllBags({
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState("");
   const searchField = useRef<HTMLInputElement>(null);
+  /** The sheet's scroller: it opens at the bottom, on the player, with what's next just above. */
+  const sheetScroll = useRef<HTMLDivElement>(null);
   const shown = useMemo(() => {
     if (!query.trim()) return bags;
     return bags.flatMap((b) => {
@@ -417,7 +419,15 @@ export function AllBags({
       {/* Phones: the queue in a sheet that swipes down to close. Focus moves in once it's open (it
           mounts mid-animation, too early to take it), stays in it, and goes back to the bar after;
           Escape closes it too. */}
-      <Sheet isOpen={sheet && current !== null} onClose={() => setSheet(false)} onOpenEnd={() => sheetClose.current?.focus()}>
+      <Sheet
+        isOpen={sheet && current !== null}
+        onClose={() => setSheet(false)}
+        onOpenStart={() => {
+          const s = sheetScroll.current;
+          if (s) s.scrollTop = s.scrollHeight;
+        }}
+        onOpenEnd={() => sheetClose.current?.focus()}
+      >
         <Sheet.Container unstyled className={styles.sheet}>
           <FocusScope asChild trapped loop>
             <div role="dialog" aria-modal="true" aria-label="Queue" className={styles.sheetBody}>
@@ -427,7 +437,7 @@ export function AllBags({
                   <span>▼ Close</span>
                 </button>
               </Sheet.Header>
-              <Sheet.Content>{nowPlaying(false)}</Sheet.Content>
+              <Sheet.Content scrollRef={sheetScroll}>{nowPlaying(false)}</Sheet.Content>
             </div>
           </FocusScope>
         </Sheet.Container>

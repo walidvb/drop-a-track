@@ -144,7 +144,8 @@ export function NowPlaying({
         </div>
       </div>
       <div className={styles.npLists} onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setDropAt(null)}>
-        <div className={styles.npListHead}>
+        {/* On phones, nothing queued: no heading, so what's next sits right on the player. */}
+        <div className={`${styles.npListHead} ${player.queued.length ? "" : styles.queuedEmpty}`}>
           <span>Queued · {padCount(player.queued.length)}</span>
           {player.queued.length > 0 && (
             <button type="button" className={styles.clear} onClick={player.clear}>

@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@cucu/media':
-        specifier: git+https://github.com/walidvb/diggers-utils.git#play-queue
-        version: https://codeload.github.com/walidvb/diggers-utils/tar.gz/50ebba791b1638cc479d2c07911a0dd7a37bf1fb(react-dom@19.2.8(react@19.2.8))(react-player@2.16.1(react@19.2.8))(react@19.2.8)
+        specifier: git+https://github.com/walidvb/diggers-utils.git#v0.2.0
+        version: https://codeload.github.com/walidvb/diggers-utils/tar.gz/165c5610c563f961cd349e1ee5d43a5f4e0d944b(react-dom@19.2.8(react@19.2.8))(react-player@2.16.1(react@19.2.8))(react@19.2.8)
       '@lglab/react-qr-code':
         specifier: ^1.7.3
         version: 1.7.3(react@19.2.8)
@@ -221,8 +221,8 @@ packages:
     resolution: {integrity: sha512-OoKoR0f76dCY666JlcbhmVTs2drYj1GUXZTYTcbUgJjh9Nv41aFfZ21bPQTERm5+L5cBDo466NltB2lplS5GBw==}
     engines: {node: '>=20.19.0'}
 
-  '@cucu/media@https://codeload.github.com/walidvb/diggers-utils/tar.gz/50ebba791b1638cc479d2c07911a0dd7a37bf1fb':
-    resolution: {tarball: https://codeload.github.com/walidvb/diggers-utils/tar.gz/50ebba791b1638cc479d2c07911a0dd7a37bf1fb}
+  '@cucu/media@https://codeload.github.com/walidvb/diggers-utils/tar.gz/165c5610c563f961cd349e1ee5d43a5f4e0d944b':
+    resolution: {tarball: https://codeload.github.com/walidvb/diggers-utils/tar.gz/165c5610c563f961cd349e1ee5d43a5f4e0d944b}
     version: 0.2.0
     peerDependencies:
       react: ^18 || ^19
@@ -3548,7 +3548,7 @@ snapshots:
 
   '@csstools/css-tokenizer@4.0.2': {}
 
-  '@cucu/media@https://codeload.github.com/walidvb/diggers-utils/tar.gz/50ebba791b1638cc479d2c07911a0dd7a37bf1fb(react-dom@19.2.8(react@19.2.8))(react-player@2.16.1(react@19.2.8))(react@19.2.8)':
+  '@cucu/media@https://codeload.github.com/walidvb/diggers-utils/tar.gz/165c5610c563f961cd349e1ee5d43a5f4e0d944b(react-dom@19.2.8(react@19.2.8))(react-player@2.16.1(react@19.2.8))(react@19.2.8)':
     dependencies:
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)

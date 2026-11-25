@@ -244,7 +244,7 @@
    sits just above it, and scrolling up goes further ahead. */
 @media (max-width: 999px) {
   .upward, .upward .npLists, .upward .queue { display: flex; flex-direction: column-reverse }
-  .upward .np { position: sticky; bottom: 0; z-index: 1 }
+  .upward .npDock { position: sticky; bottom: 0; z-index: 1 }
   .upward .npListHead { border-bottom: 0; border-top: 1px solid var(--ink) }
   .upward .queuedEmpty { display: none }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useState, type DragEvent, type MouseEvent } from "react";
+import { Fragment, useState, type DragEvent, type MouseEvent, type ReactNode } from "react";
 import { Artwork } from "@/components/ds/Artwork";
 import { TrackRow } from "@/components/ds/TrackRow";
 import { fmtTime } from "@/components/ds/types";
@@ -42,7 +42,7 @@ export const dragTrack = (t: HomeTrack) => ({
  * What's on, its transport, and what's next: Queued (by hand: a track dragged from an open bag
  * drops in where it's let go, opening a gap there as it's held over, and the queued ones drag to reorder), then Then (what follows:
  * tracks gone back from, and the rest of what it's playing from; any of them drags up into Queued). Big: the cover full width
- * (beside the bags). Not big (the phone's sheet): it all reads bottom to top, the player at the bottom with what's next just above.
+ * (beside the bags). Not big (the phone's sheet): it all reads bottom to top, the player at the bottom (under the sheet's handle) with what's next just above.
  */
 export function NowPlaying({
   big,
@@ -50,6 +50,7 @@ export function NowPlaying({
   mine,
   onQueue,
   linkTo,
+  handle,
 }: {
   big: boolean;
   bagOf: (t: HomeTrack) => HomeBag | undefined;
@@ -59,6 +60,8 @@ export function NowPlaying({
   onQueue: (id: string, to: QueueSpot) => void;
   /** A link to a bag that stays on this page. */
   linkTo: (handle: string) => { href: string; onClick: (e: MouseEvent) => void };
+  /** Not big: what drags the sheet closed, pinned on top of the player. */
+  handle?: ReactNode;
 }) {
   const player = usePlayer();
   /** Where a dragged track would land: before this track (by id), or at the end. */
@@ -97,113 +100,127 @@ export function NowPlaying({
       </span>
     </div>
   );
-  const body = (
-    <>
-      <div className={styles.np}>
-        {big && (
-          <Link {...linkTo(track.handle)} className={styles.npBag}>
-            <span>
-              {player.started ? "Now playing" : "Up first"} · {track.handle}’s bag
-            </span>
-            <span>{placeIn(bagOf(track), track)} →</span>
-          </Link>
-        )}
-        {big ? (
-          <>
-            <div style={{ aspectRatio: "1" }}>
-              <Artwork src={track.thumbnail} source={track.source} size="100%" mono={false} />
-            </div>
-            {text}
-          </>
-        ) : (
-          <div className={styles.npRow}>
-            <Artwork src={track.thumbnail} source={track.source} size={96} mono={false} />
-            {text}
+  const np = (
+    <div className={styles.np}>
+      {big && (
+        <Link {...linkTo(track.handle)} className={styles.npBag}>
+          <span>
+            {player.started ? "Now playing" : "Up first"} · {track.handle}’s bag
+          </span>
+          <span>{placeIn(bagOf(track), track)} →</span>
+        </Link>
+      )}
+      {big ? (
+        <>
+          <div style={{ aspectRatio: "1" }}>
+            <Artwork src={track.thumbnail} source={track.source} size="100%" mono={false} />
           </div>
-        )}
-        <div className={styles.npSeek}>
-          <span className={styles.npBar}>
-            <span style={{ width: `${duration ? Math.min(100, (position / duration) * 100) : 0}%` }} />
-            {duration ? <input aria-label="Seek" {...player.seekInputProps} /> : null}
-          </span>
-          <span className={styles.npTimes}>
-            <span>{player.buffering ? "Loading…" : fmtTime(position, true)}</span>
-            <span>{fmtTime(duration, true)}</span>
-          </span>
+          {text}
+        </>
+      ) : (
+        <div className={styles.npRow}>
+          <Artwork src={track.thumbnail} source={track.source} size={96} mono={false} />
+          {text}
         </div>
-        <div className={styles.npTransport}>
-          <button type="button" aria-label="Previous track" onClick={player.previous} disabled={!player.hasPrevious}>
-            ◀︎◀︎
-          </button>
-          <button type="button" aria-label={player.playing ? "Pause" : "Play"} onClick={player.toggle}>
-            {player.playing ? "❚❚" : "▶︎"}
-          </button>
-          <button type="button" aria-label="Next track" onClick={player.next} disabled={!player.hasNext}>
-            ▶︎▶︎
-          </button>
-        </div>
+      )}
+      <div className={styles.npSeek}>
+        <span className={styles.npBar}>
+          <span style={{ width: `${duration ? Math.min(100, (position / duration) * 100) : 0}%` }} />
+          {duration ? <input aria-label="Seek" {...player.seekInputProps} /> : null}
+        </span>
+        <span className={styles.npTimes}>
+          <span>{player.buffering ? "Loading…" : fmtTime(position, true)}</span>
+          <span>{fmtTime(duration, true)}</span>
+        </span>
       </div>
-      <div className={styles.npLists} onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setDropAt(null)}>
-        {/* On phones, nothing queued: no heading, so what's next sits right on the player. */}
-        <div className={`${styles.npListHead} ${player.queued.length ? "" : styles.queuedEmpty}`}>
-          <span>Queued · {padCount(player.queued.length)}</span>
-          {player.queued.length > 0 && (
-            <button type="button" className={styles.clear} onClick={player.clear}>
-              Clear
-            </button>
-          )}
-        </div>
-        <ol className={styles.queue}>
-          {player.queued.map((t, i) => (
-            <li key={t.id} {...dragTrack(t)} className={`${styles.slot} ${dropAt === t.id ? styles.dropHere : ""}`} {...target({ before: t.id })}>
-              <TrackRow track={t} index={i + 1} active={false} playing={false} ruled mono={false} mine={mine.includes(t.id)} onPlay={() => player.play(t)} />
-            </li>
-          ))}
-          <li className={`${styles.slot} ${styles.queueEnd} ${dropAt === "end" ? styles.dropHere : ""}`} {...target("end")}>
-            {player.queued.length ? "Drag here to queue last" : "Drag a track here to play it next"}
-          </li>
-        </ol>
-        <div className={styles.npListHead}>
-          <span>Then{player.source === "shuffle" ? " · shuffled" : ""}</span>
-          <span>{padCount(player.rest.length)}</span>
-        </div>
-        {/* Let go over these: queued last. Dragged from here into Queued, a track leaves Then. */}
-        <ol className={styles.queue} {...target("end", FROM_THEN)}>
-          {player.rest.map((t, i) => (
-            <Fragment key={t.id}>
-              {/* Bag after bag: a small header where each bag's run starts (not when shuffled: every track would get one). */}
-              {player.source !== "shuffle" && player.rest[i - 1]?.handle !== t.handle && (
-                <li>
-                  <Link {...linkTo(t.handle)} className={styles.thenBag}>
-                    <span>{t.handle}’s bag</span>
-                    <span>#{padNumber(bagOf(t)?.number ?? t.bagNumber)} →</span>
-                  </Link>
-                </li>
-              )}
-              <li
-                draggable
-                onDragStart={(e) => {
-                  dragTrack(t).onDragStart(e);
-                  e.dataTransfer.setData(FROM_THEN, t.id);
-                }}
-              >
-                <TrackRow
-                  track={t}
-                  index={player.queued.length + i + 1}
-                  active={false}
-                  playing={false}
-                  ruled
-                  mono={false}
-                  mine={mine.includes(t.id)}
-                  onPlay={() => player.play(t)}
-                />
-              </li>
-            </Fragment>
-          ))}
-          {player.after === "shuffle" && <li className={styles.queueAfter}>Then everything, shuffled</li>}
-        </ol>
+      <div className={styles.npTransport}>
+        <button type="button" aria-label="Previous track" onClick={player.previous} disabled={!player.hasPrevious}>
+          ◀︎◀︎
+        </button>
+        <button type="button" aria-label={player.playing ? "Pause" : "Play"} onClick={player.toggle}>
+          {player.playing ? "❚❚" : "▶︎"}
+        </button>
+        <button type="button" aria-label="Next track" onClick={player.next} disabled={!player.hasNext}>
+          ▶︎▶︎
+        </button>
       </div>
-    </>
+    </div>
   );
-  return big ? body : <div className={styles.upward}>{body}</div>;
+  const lists = (
+    <div className={styles.npLists} onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setDropAt(null)}>
+      {/* On phones, nothing queued: no heading, so what's next sits right on the player. */}
+      <div className={`${styles.npListHead} ${player.queued.length ? "" : styles.queuedEmpty}`}>
+        <span>Queued · {padCount(player.queued.length)}</span>
+        {player.queued.length > 0 && (
+          <button type="button" className={styles.clear} onClick={player.clear}>
+            Clear
+          </button>
+        )}
+      </div>
+      <ol className={styles.queue}>
+        {player.queued.map((t, i) => (
+          <li key={t.id} {...dragTrack(t)} className={`${styles.slot} ${dropAt === t.id ? styles.dropHere : ""}`} {...target({ before: t.id })}>
+            <TrackRow track={t} index={i + 1} active={false} playing={false} ruled mono={false} mine={mine.includes(t.id)} onPlay={() => player.play(t)} />
+          </li>
+        ))}
+        <li className={`${styles.slot} ${styles.queueEnd} ${dropAt === "end" ? styles.dropHere : ""}`} {...target("end")}>
+          {player.queued.length ? "Drag here to queue last" : "Drag a track here to play it next"}
+        </li>
+      </ol>
+      <div className={styles.npListHead}>
+        <span>Then{player.source === "shuffle" ? " · shuffled" : ""}</span>
+        <span>{padCount(player.rest.length)}</span>
+      </div>
+      {/* Let go over these: queued last. Dragged from here into Queued, a track leaves Then. */}
+      <ol className={styles.queue} {...target("end", FROM_THEN)}>
+        {player.rest.map((t, i) => (
+          <Fragment key={t.id}>
+            {/* Bag after bag: a small header where each bag's run starts (not when shuffled: every track would get one). */}
+            {player.source !== "shuffle" && player.rest[i - 1]?.handle !== t.handle && (
+              <li>
+                <Link {...linkTo(t.handle)} className={styles.thenBag}>
+                  <span>{t.handle}’s bag</span>
+                  <span>#{padNumber(bagOf(t)?.number ?? t.bagNumber)} →</span>
+                </Link>
+              </li>
+            )}
+            <li
+              draggable
+              onDragStart={(e) => {
+                dragTrack(t).onDragStart(e);
+                e.dataTransfer.setData(FROM_THEN, t.id);
+              }}
+            >
+              <TrackRow
+                track={t}
+                index={player.queued.length + i + 1}
+                active={false}
+                playing={false}
+                ruled
+                mono={false}
+                mine={mine.includes(t.id)}
+                onPlay={() => player.play(t)}
+              />
+            </li>
+          </Fragment>
+        ))}
+        {player.after === "shuffle" && <li className={styles.queueAfter}>Then everything, shuffled</li>}
+      </ol>
+    </div>
+  );
+  return big ? (
+    <>
+      {np}
+      {lists}
+    </>
+  ) : (
+    <div className={styles.upward}>
+      {/* Pinned at the bottom: the sheet's handle (it drags the sheet down) on the player. */}
+      <div className={styles.npDock}>
+        {handle}
+        {np}
+      </div>
+      {lists}
+    </div>
+  );
 }

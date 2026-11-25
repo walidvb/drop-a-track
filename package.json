@@ -10,7 +10,7 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@cucu/media": "github:walidvb/diggers-utils#play-queue",
+    "@cucu/media": "git+https://github.com/walidvb/diggers-utils.git#play-queue",
     "@lglab/react-qr-code": "^1.7.3",
     "@neondatabase/serverless": "^1.1.0",
     "@radix-ui/react-dialog": "^1.3.1",
